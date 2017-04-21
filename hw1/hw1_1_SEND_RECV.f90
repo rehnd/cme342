@@ -4,56 +4,125 @@ program main
 
   integer, parameter   :: n1 = 1024, n2 = 1024, niter = 100
   integer              :: i, j, n
-  integer              :: my_id, size, ierr
-  integer              :: np1, np2
+  integer              :: my_id, np, ierr
   real(8), parameter   :: epsilon = 0.1
   real(8), allocatable :: a(:,:), b(:,:)
   real(8), allocatable :: x(:)  , y(:)
   integer              :: nid(8) ! neighbor id's
-
+  integer              :: i_f, i_l, j_f, j_l ! => i_first, i_last, j_first, j_last
+  integer              :: np1, np2  
   np1 = 4
   np2 = 4
 
-  allocate(a(n1,n2))
-  allocate(b(n1,n2))
-  allocate(x(n1))
-  allocate(y(n1))
-
+  !  MPI Setup, get rank, size, and run tests
   call mpi_init(ierr)
-  
-  call mpi_comm_size(mpi_comm_world, size, ierr)
+  call mpi_comm_size(mpi_comm_world, np, ierr)
   call mpi_comm_rank(mpi_comm_world, my_id, ierr)
   my_id = my_id + 1
+  call check_num_processes(my_id, np, np1, np2)
 
-  if ((.not. np1*np2  == size)) then
-     if (my_id == 1) print *, 'Error: Domain decomp (np1*np2) not equal to MPI_RANK'
-     stop('')
-  end if
-
+  ! Set up arrays on each processor, get the indices this process will work on
+  call allocate_arrays(a,b,x,y,n1,n2)
   call initialize_arrays(a,b,x,y)
+  call get_my_ij(i_f, i_l, j_f, j_l, np1, np2, my_id, n1, n2)
+  !call get_neighbor_ids(my_id, nid, np1, np2)
 
-  call get_neighbor_ids(my_id, nid, np1, np2)
-
+  ! Main loop. Inside, update the subgrid on each process and send data
   do n = 1, niter
-     do j = 2, n2-1
-        do i = 2, n1-1
-           a(i,j) = b(i,j) + epsilon*( &
-                b(i-1,j+1)+         b(i,j+1)+b(i+1,j+1) + &
-                b(i-1,j  )-dble(8.)*b(i,j  )+b(i+1,j  ) + &
-                b(i-1,j-1)+         b(i,j-1)+b(i+1,j-1))
-        end do
-     end do
-     b = a
+     call update_subgrid(a,b,epsilon, i_f, i_l, j_f, j_l)
+
+     !call send_recv_data()
   end do
 
-
-  deallocate(a,b,x,y)
+  call deallocate_arrays(a,b,x,y)
 
   call mpi_finalize(ierr)
 
 contains
-
   
+  subroutine send_recv_data(np1, np2, my_id)
+    integer, intent(in) :: np1, np2, my_id
+    integer  :: ip, jp, curr_id, p
+
+     do jp = 1, np2
+        do ip = 1, np1
+           curr_id = np1*(jp-1) + i
+           do p = 1, np
+              if (my_id == curr_id) then
+                 !call mpi_send()
+              else
+                 !call mpi_recv()
+              end if
+           end do
+        end do
+     end do
+
+
+  end subroutine send_recv_data
+
+
+  subroutine update_subgrid(a,b,epsilon, i_f, i_l, j_f, j_l)
+    real(8), intent(inout) :: a(:,:), b(:,:)
+    integer, intent(in)    :: i_f, i_l, j_f, j_l
+    real(8), intent(in)    :: epsilon
+    integer                :: i, j
+
+    do j = j_f+1, j_l-1
+       do i = i_f+1, i_f-1
+          a(i,j) = b(i,j) + epsilon*( &
+               b(i-1,j+1)+         b(i,j+1)+b(i+1,j+1) + &
+               b(i-1,j  )-dble(8.)*b(i,j  )+b(i+1,j  ) + &
+               b(i-1,j-1)+         b(i,j-1)+b(i+1,j-1))
+       end do
+    end do
+    b = a
+    ! or b(i_f:i_l, j_f:j_l) = a(i_f:i_l, j_f:j_l)
+
+  end subroutine update_subgrid
+
+  subroutine allocate_arrays(a,b,x,y,n1,n2)
+    real(8), allocatable, intent(inout) :: a(:,:), b(:,:), x(:), y(:)
+    integer, intent(in)                 :: n1, n2
+
+    allocate(a(n1,n2))
+    allocate(b(n1,n2))
+    allocate(x(n1))
+    allocate(y(n2))
+  end subroutine allocate_arrays
+
+  subroutine deallocate_arrays(a,b,x,y)
+    real(8), allocatable, intent(inout) :: a(:,:), b(:,:), x(:), y(:)
+    deallocate(a,b,x,y)
+  end subroutine deallocate_arrays
+  subroutine get_my_ij(i_f, i_l, j_f, j_l, np1, np2, my_id, n1, n2)
+    integer, intent(inout) :: i_f, i_l, j_f, j_l
+    integer, intent(in)    :: np1, np2, my_id, n1, n2
+    integer                :: ip, jp
+    character(len=10)      :: fmt = '(5I)'
+
+    jp = (my_id-1)/np1 + 1
+    ip =  my_id - (jp-1)*np1
+    
+    i_f = (n1/np1)*(ip-1) + 1
+    i_l = i_f + (n1/np1)  - 1
+    j_f = (n2/np2)*(jp-1) + 1
+    j_l = j_f + (n2/np2)  - 1
+
+    !if (my_id == 1) write(*,*) '       my_id     i_f      i_l      j_f      j_l'
+    !write(*,fmt) my_id, i_f, i_l, j_f, j_l
+
+  end subroutine get_my_ij
+  
+  subroutine check_num_processes(my_id, np, np1, np2)
+    integer, intent(in) :: my_id, np, np1, np2
+
+    if ((.not. np1*np2  == np)) then
+       if (my_id == 1) print *, 'Error: Domain decomp (np1*np2) not equal to MPI_RANK'
+       stop('')
+    end if
+  end subroutine check_num_processes
+
+
   subroutine get_neighbor_ids(my_id, nid, np1, np2)
     integer, intent(in)    :: my_id, np1, np2
     integer, intent(inout) :: nid(8)
@@ -103,7 +172,7 @@ contains
     if (nid(2) > 0 .and. nid(3) > 0) nid(7) = my_id+np1+1
     if (nid(3) > 0 .and. nid(4) > 0) nid(8) = my_id+np1-1
 
-    ! write (*,fmt)  my_id, nid(:)
+    !write (*,fmt)  my_id, nid(:)
 
   end subroutine get_neighbor_ids
 
