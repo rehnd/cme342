@@ -34,6 +34,19 @@ program main
 
   call get_neighbor_ids(my_id, nid, np1, np2)
 
+  do n = 1, niter
+     do j = 2, n2-1
+        do i = 2, n1-1
+           a(i,j) = b(i,j) + epsilon*( &
+                b(i-1,j+1)+         b(i,j+1)+b(i+1,j+1) + &
+                b(i-1,j  )-dble(8.)*b(i,j  )+b(i+1,j  ) + &
+                b(i-1,j-1)+         b(i,j-1)+b(i+1,j-1))
+        end do
+     end do
+     b = a
+  end do
+
+
   deallocate(a,b,x,y)
 
   call mpi_finalize(ierr)
@@ -90,7 +103,7 @@ contains
     if (nid(2) > 0 .and. nid(3) > 0) nid(7) = my_id+np1+1
     if (nid(3) > 0 .and. nid(4) > 0) nid(8) = my_id+np1-1
 
-    write (*,fmt)  my_id, nid(:)
+    ! write (*,fmt)  my_id, nid(:)
 
   end subroutine get_neighbor_ids
 
@@ -115,18 +128,6 @@ contains
           end if
           b(i,j) = a(i,j)
        end do
-    end do
-
-    do n = 1, niter
-       do j = 2, n2-1
-          do i = 2, n1-1
-             a(i,j) = b(i,j) + epsilon*( &
-                  b(i-1,j+1)+         b(i,j+1)+b(i+1,j+1) + &
-                  b(i-1,j  )-dble(8.)*b(i,j  )+b(i+1,j  ) + &
-                  b(i-1,j-1)+         b(i,j-1)+b(i+1,j-1))
-          end do
-       end do
-       b = a
     end do
 
   end subroutine initialize_arrays
