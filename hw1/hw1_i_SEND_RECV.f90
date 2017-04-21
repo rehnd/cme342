@@ -9,7 +9,7 @@ program main
   real(8), parameter   :: epsilon = 0.1
   real(8), allocatable :: a(:,:), b(:,:)
   real(8), allocatable :: x(:)  , y(:)
-  integer              :: nid(4) ! neighbor id's
+  integer              :: nid(8) ! neighbor id's
 
   np1 = 4
   np2 = 4
@@ -43,22 +43,54 @@ contains
   
   subroutine get_neighbor_ids(my_id, nid, np1, np2)
     integer, intent(in)    :: my_id, np1, np2
-    integer, intent(inout) :: nid(4)
-    integer                :: ip1, ip2 ! indices of my_id in the global array
+    integer, intent(inout) :: nid(8)
+    integer                :: ip1, ip2   ! indices of my_id in the global array
+    character(len=10)      :: fmt = "(1I,8I)"
 
+    ! Fill the nid array based on nearest neighbors. The grid for 16 processors is:
+    !
+    !       -------->  j (ip2, np2)
+    !        ________________________
+    !   |   |     |     |     |      |
+    !   |   |  1  |  5  |  9  |  13  |
+    !   |   |_____|_____|_____|______|
+    !   v   |     |     |     |      |
+    !       |  2  |  6  |  10 |  14  |
+    !   i   |_____|_____|_____|______|
+    ! (ip1) |     |     |     |      | 
+    ! (np1) |  3  |  7  |  11 |  15  |
+    !       |_____|_____|_____|______|
+    !       |     |     |     |      |
+    !       |  4  |  8  |  12 |  16  |
+    !       |_____|_____|_____|______|
+    !
+    ! nid filling:
+    !    Use nid(1,...,8) = (l, d, r, u, lu, ld, rd, ru)
+    !    where:  l = left, d = down, r = right, u = up,  lu = left+up, etc.
+    !
+    ! Examples:
+    !    nid(1,...,8) for my_id = 6 should be: (2, 7,10,5,  1, 3,11, 9)
+    !    nid(1,...,8) for my_id = 8 should be: (4,-1,12,7,  3,-1,-1,11)
+
+    ! First determine index in i,j of my_id
     ip2 = (my_id-1)/np1 + 1
     ip1 =  my_id - (ip2-1)*np2
     
-    !print *, 'my_id, ip1, ip2 ', my_id, ip1, ip2
-
     nid(:) = -1
 
+    ! Set the first 4 elements of nid (edges)
     if (my_id - np1  >  0)           nid(1) = my_id - np1    
     if (my_id + 1    <= ip2*np1)     nid(2) = my_id + 1
     if (my_id + np1  <= np1*np2)     nid(3) = my_id + np1
     if (my_id - 1    > (ip2-1)*np1)  nid(4) = my_id - 1
-    
-    !print *, 'my_id, np', my_id, nid(:)
+
+    ! Set the last 4 elements of nid (corners)
+    if (nid(4) > 0 .and. nid(1) > 0) nid(5) = my_id-np1-1
+    if (nid(1) > 0 .and. nid(2) > 0) nid(6) = my_id-np1+1
+    if (nid(2) > 0 .and. nid(3) > 0) nid(7) = my_id+np1+1
+    if (nid(3) > 0 .and. nid(4) > 0) nid(8) = my_id+np1-1
+
+    write (*,fmt)  my_id, nid(:)
 
   end subroutine get_neighbor_ids
 
