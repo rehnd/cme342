@@ -90,16 +90,19 @@ contains
     allocate(y(n2))
   end subroutine allocate_arrays
 
+
   subroutine deallocate_arrays(a,b,x,y)
     real(8), allocatable, intent(inout) :: a(:,:), b(:,:), x(:), y(:)
     deallocate(a,b,x,y)
   end subroutine deallocate_arrays
+
+
   subroutine get_my_ij(i_f, i_l, j_f, j_l, np1, np2, my_id, n1, n2)
     integer, intent(inout) :: i_f, i_l, j_f, j_l
     integer, intent(in)    :: np1, np2, my_id, n1, n2
     integer                :: ip, jp
     character(len=10)      :: fmt = '(5I)'
-
+    logical                :: printtest = .true.
     jp = (my_id-1)/np1 + 1
     ip =  my_id - (jp-1)*np1
     
@@ -108,9 +111,17 @@ contains
     j_f = (n2/np2)*(jp-1) + 1
     j_l = j_f + (n2/np2)  - 1
 
-    !if (my_id == 1) write(*,*) '       my_id     i_f      i_l      j_f      j_l'
-    !write(*,fmt) my_id, i_f, i_l, j_f, j_l
+    ! Now adjust for the fact that we don't want to start looping from 1, but from 2
+    ! Same with the end: want to end looping at n1-1 and n2-1
+    if (i_f ==  1) i_f = 2
+    if (i_l == n1) i_l = n1-1
+    if (j_f ==  1) j_f = 2
+    if (j_l == n1) j_l = n2-1
 
+    if (printtest) then
+       if (my_id == 1) write(*,'(5A12)') 'my_id', 'i_f', 'i_l', 'j_f', 'j_l'
+       write(*,fmt) my_id, i_f, i_l, j_f, j_l
+    end if
   end subroutine get_my_ij
   
   subroutine check_num_processes(my_id, np, np1, np2)
