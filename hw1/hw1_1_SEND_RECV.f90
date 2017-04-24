@@ -1,18 +1,21 @@
 program main
   implicit none
   include 'mpif.h'
-  integer, parameter    :: n1 = 1024, n2 = 1024, niter = 100
+  integer, parameter    :: n1 = 1024, n2 = 1024, niter = 1
   integer               :: i, j, n
   integer               :: my_id, np, ierr
   real(8), parameter    :: epsilon = 0.1
-  real(8), allocatable  :: a(:,:), b(:,:)
+  real(8), allocatable  :: a(:,:), b(:,:), tmp(:,:)
   real(8), allocatable  :: x(:)  , y(:)
   integer               :: nid(4) ! neighbor id's
   integer               :: i_f, i_l, j_f, j_l ! => i_first, i_last, j_first, j_last
   integer               :: np1, np2  
+  integer               :: n1me, n2me
   np1 = 4
   np2 = 4
-
+  n1me = n1/np1
+  n2me = n2/np2
+  
   !  MPI Setup, get rank, size, and run tests
   call mpi_init(ierr)
   call mpi_comm_size(mpi_comm_world,    np, ierr)
@@ -21,42 +24,50 @@ program main
   call check_num_processes()
 
   ! Set up arrays on each processor, get the indices this process will work on
-  call allocate_arrays(n1/np1,n2/np2)
+  call allocate_arrays()
   call get_my_ij()
   call initialize_arrays()
   nid = get_neighbor_ids(my_id)
 
   ! Main loop. Inside, update the interior points on each process and send data
   do n = 1, niter
-     !call send_receive()
+     call send_receive()
      call update_interior()
      call update_edges()
      b=a
   end do
 
   call deallocate_arrays()
-
   call mpi_finalize(ierr)
+
 
 contains
 
 
   subroutine send_receive()
-    integer  :: ip, jp, p
+    integer  :: ip, jp, p, tag=1
     integer  :: cid         ! current id
     integer  :: cid_nid(4)  ! current id's neighbors
 
      do jp = 1, np2
         do ip = 1, np1
-           cid     = np1*(jp-1) + i
+           cid     = np1*(jp-1) + ip
            cid_nid = get_neighbor_ids(cid)
-           do p = 1, np
-              if (my_id == cid) then
-                 !call mpi_send()
-              else
-                 !call mpi_recv()
-              end if
-           end do
+           if (my_id == cid .and. nid(2) > 0) then
+              tmp(:,2) = a(n1me,:)
+              call mpi_send(tmp(1,2),n2me,mpi_double_precision,cid_nid(2)-1,tag,mpi_comm_world)
+              !call mpi_recv(tmp(:,2),n2me,mpi_double_precision,cid_nid(2)-1,tag,mpi_comm_world)
+              !a(n1me,:) = b(n1me,:) + tmp(:,2)
+              !print *, my_id, " <--> ", cid_nid(2)
+           elseif(my_id == cid_nid(2) .and. nid(4) > 0 ) then
+              !print *, nid(4), " <--> ", cid_nid(2)!, " <--> ", my_id
+              call mpi_recv(tmp(1,4),n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world)
+              !if (my_id == 2) print *, size(a(1,:)), size(b(1,:)), size(tmp(:,4))
+              !a(1,:)   = b(1,:) + tmp(:,4)
+              !tmp(:,4) = b(1,:)
+              !call mpi_send(tmp(:,4),n2me,mpi_double_precision,cid_nid(4)-1,tag,mpi_comm_world)
+              
+           end if
         end do
      end do
 
@@ -64,9 +75,7 @@ contains
 
 
   subroutine update_interior()
-    integer                :: i, j, n1me, n2me
-    n1me = n1/np1
-    n2me = n2/np2
+    integer                :: i, j
 
     do j = 2, n2me-1
        do i = 2, n1me-1
@@ -81,10 +90,6 @@ contains
 
 
   subroutine update_edges()
-    integer :: n1me, n2me
-
-    n1me = n1/np1
-    n2me = n2/np2
 
     if (nid(1) > 0)  then
        a(:,1)        = a(:,1)        + b(:,2)        - dble(8.)*b(:,1)
@@ -114,18 +119,22 @@ contains
   end subroutine update_edges
 
 
-  subroutine allocate_arrays(n1me,n2me)
-    integer, intent(in)                 :: n1me, n2me
-
+  subroutine allocate_arrays()
     allocate(a(n1me,n2me))
     allocate(b(n1me,n2me))
+    if (n1me==n2me) then
+       allocate(tmp(n1me,4))
+    else
+       allocate(tmp(max(n1me,n2me),4))
+       print *, "Warning: n1 and n2 are not the same dimension"
+    end if
     allocate(x(n1me))
     allocate(y(n2me))
   end subroutine allocate_arrays
 
 
   subroutine deallocate_arrays()
-    deallocate(a,b,x,y)
+    deallocate(a,b,tmp,x,y)
   end subroutine deallocate_arrays
 
 
