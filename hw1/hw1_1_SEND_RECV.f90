@@ -3,19 +3,22 @@ program main
   include 'mpif.h'
   integer, parameter    :: n1 = 1024, n2 = 1024, niter = 1
   integer               :: i, j, n
-  integer               :: my_id, np, ierr
-  real(8), parameter    :: epsilon = 0.1
-  real(8), allocatable  :: a(:,:), b(:,:), tmp(:,:)
-  real(8), allocatable  :: x(:)  , y(:)
+  integer               :: my_id, np, ierr, status
+  double precision, parameter    :: epsilon = 0.1
+  double precision, allocatable  :: a(:,:), b(:,:), b1(:),b2(:),b3(:),b4(:)
+  double precision, allocatable  :: x(:)  , y(:)
   integer               :: nid(4) ! neighbor id's
   integer               :: i_f, i_l, j_f, j_l ! => i_first, i_last, j_first, j_last
-  integer               :: np1, np2  
+  integer               :: np1, np2
   integer               :: n1me, n2me
+  integer,allocatable   :: top(:), left(:)
+  double precision :: norm
+
   np1 = 4
-  np2 = 4
+  np2 = 2
   n1me = n1/np1
   n2me = n2/np2
-  
+
   !  MPI Setup, get rank, size, and run tests
   call mpi_init(ierr)
   call mpi_comm_size(mpi_comm_world,    np, ierr)
@@ -37,6 +40,9 @@ program main
      b=a
   end do
 
+  call get_total_norm()
+  if (my_id == 1) print *, "norm(a) = ", norm
+
   call deallocate_arrays()
   call mpi_finalize(ierr)
 
@@ -45,37 +51,67 @@ contains
 
 
   subroutine send_receive()
-    integer  :: ip, jp, p, tag=1
+    integer  :: ip, jp, p, tag=2001
     integer  :: cid         ! current id
     integer  :: cid_nid(4)  ! current id's neighbors
 
-     do jp = 1, np2
-        do ip = 1, np1
-           cid     = np1*(jp-1) + ip
-           cid_nid = get_neighbor_ids(cid)
-           if (my_id == cid .and. nid(2) > 0) then
-              tmp(:,2) = a(n1me,:)
-              call mpi_send(tmp(1,2),n2me,mpi_double_precision,cid_nid(2)-1,tag,mpi_comm_world)
-              !call mpi_recv(tmp(:,2),n2me,mpi_double_precision,cid_nid(2)-1,tag,mpi_comm_world)
-              !a(n1me,:) = b(n1me,:) + tmp(:,2)
-              !print *, my_id, " <--> ", cid_nid(2)
-           elseif(my_id == cid_nid(2) .and. nid(4) > 0 ) then
-              !print *, nid(4), " <--> ", cid_nid(2)!, " <--> ", my_id
-              call mpi_recv(tmp(1,4),n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world)
-              !if (my_id == 2) print *, size(a(1,:)), size(b(1,:)), size(tmp(:,4))
-              !a(1,:)   = b(1,:) + tmp(:,4)
-              !tmp(:,4) = b(1,:)
-              !call mpi_send(tmp(:,4),n2me,mpi_double_precision,cid_nid(4)-1,tag,mpi_comm_world)
-              
-           end if
-        end do
-     end do
+    ! Send and receive N to S (nid(4) = N, nid(2) = S)
+    if (any(top == my_id) .and. nid(2) > 0) then
+       b2 = b(n1me,:)
+       call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
+       call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status, ierr)
+       a(n1me,:) = a(n1me,:) + b2
+
+    elseif (nid(4) > 0 .and. nid(2) > 0) then
+       call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
+       a(1,:) = a(1,:) + b4
+       b4     = b(1,:)
+       call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
+       
+       b2 = b(n1me,:)
+       call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
+       call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status,ierr)
+       a(n1me,:) = a(n1me,:) + b2
+
+    elseif (nid(4) > 0) then
+       call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
+       a(1,:) = a(1,:) + b4
+       b4     = b(1,:)
+       call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
+
+    end if
+
+    ! Send and receive W to E (nid(1) = W, nid(3) = E)
+    if (any(left == my_id) .and. nid(3) > 0) then
+       b3 = b(:,n2me)
+       call mpi_send(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
+       call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status, ierr)
+       a(:,n2me) = a(:,n2me) + b3
+
+    elseif (nid(1) > 0 .and. nid(3) > 0) then
+       call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
+       a(:,1) = a(:,1) + b1
+       b1     = b(:,1)
+       call mpi_send(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
+       
+       b3 = b(:,n2me)
+       call mpi_send(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
+       call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status,ierr)
+       a(:,n2me) = a(:,n2me) + b3
+
+    elseif (nid(1) > 0) then
+       call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
+       a(:,1) = a(:,1) + b1
+       b1     = b(:,1)
+       call mpi_send(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
+
+    end if
 
   end subroutine send_receive
 
 
   subroutine update_interior()
-    integer                :: i, j
+    integer :: i, j
 
     do j = 2, n2me-1
        do i = 2, n1me-1
@@ -119,22 +155,46 @@ contains
   end subroutine update_edges
 
 
+
+  subroutine get_total_norm()
+    integer :: ip, tag = 3001
+    double precision :: norm_ip
+    ! First sum squares of entries
+    norm = sum(a**2)
+    
+    if (my_id == 1) then
+       do ip = 2,np
+          call mpi_recv(norm_ip,1,mpi_double_precision,ip-1,tag,mpi_comm_world,status,ierr)
+          norm = norm + norm_ip
+       end do
+       norm = sqrt(norm)
+    else
+       call mpi_send(norm,1,mpi_double_precision,0,tag,mpi_comm_world,ierr)
+    end if
+
+    
+  end subroutine get_total_norm
+
+
   subroutine allocate_arrays()
     allocate(a(n1me,n2me))
     allocate(b(n1me,n2me))
-    if (n1me==n2me) then
-       allocate(tmp(n1me,4))
-    else
-       allocate(tmp(max(n1me,n2me),4))
-       print *, "Warning: n1 and n2 are not the same dimension"
-    end if
     allocate(x(n1me))
     allocate(y(n2me))
+
+    allocate(b1(n1me))
+    allocate(b2(n2me))
+    allocate(b3(n1me))
+    allocate(b4(n2me))
+
+    allocate( top(np2))
+    allocate(left(np1))
+
   end subroutine allocate_arrays
 
 
   subroutine deallocate_arrays()
-    deallocate(a,b,tmp,x,y)
+    deallocate(a,b,x,y,b1,b2,b3,b4)
   end subroutine deallocate_arrays
 
 
@@ -235,6 +295,14 @@ contains
           end if
           b(i,j) = a(i,j)
        end do
+    end do
+
+    do i=1,np2
+       top(i) = np1*(i-1)+1
+    end do
+
+    do i=1,np1
+       left(i) = i
     end do
 
     if (testvals) then
