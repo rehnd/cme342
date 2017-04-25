@@ -34,7 +34,7 @@ program main
   do n = 1, niter
      do j = 2, n2-1
         do i = 2, n1-1
-           a(i,j) = b(i,j) + epsilon*( &
+           a(i,j) = b(i,j)+ epsilon*( &
                 b(i-1,j+1)+         b(i,j+1)+b(i+1,j+1) + &
                 b(i-1,j  )-dble(8.)*b(i,j  )+b(i+1,j  ) + &
                 b(i-1,j-1)+         b(i,j-1)+b(i+1,j-1))

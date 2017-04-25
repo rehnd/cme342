@@ -1,8 +1,8 @@
 #!/bin/bash 
 
 #SBATCH --job-name=long-run-16
-#SBATCH --output=hw1.out
-#SBATCH --error=hw1.err
+#SBATCH --output=mpiout.out
+#SBATCH --error=mpierr.err
 #SBATCH --time=1:00:00
 #SBATCH --qos=normal
 #SBATCH --nodes=1

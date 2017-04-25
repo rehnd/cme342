@@ -1,20 +1,21 @@
 program main
   implicit none
   include 'mpif.h'
-  integer, parameter    :: n1 = 1024, n2 = 1024, niter = 1
-  integer               :: i, j, n
-  integer               :: my_id, np, ierr, status
-  double precision, parameter    :: epsilon = 0.1
-  double precision, allocatable  :: a(:,:), b(:,:), b1(:),b2(:),b3(:),b4(:)
-  double precision, allocatable  :: x(:)  , y(:)
-  integer               :: nid(4) ! neighbor id's
-  integer               :: i_f, i_l, j_f, j_l ! => i_first, i_last, j_first, j_last
-  integer               :: np1, np2
-  integer               :: n1me, n2me
-  integer,allocatable   :: top(:), left(:)
-  double precision :: norm
 
-  np1 = 4
+  integer, parameter            :: n1 = 1024, n2 = 1024, niter = 1
+  integer                       :: i, j, n
+  integer                       :: my_id, np, ierr, status
+  double precision              :: norm
+  double precision, parameter   :: epsilon = 0.1
+  double precision, allocatable :: a(:,:), b(:,:), b1(:),b2(:),b3(:),b4(:)
+  double precision, allocatable :: x(:)  , y(:)
+  integer                       :: nid(4) ! neighbor id's
+  integer                       :: i_f, i_l, j_f, j_l ! => i_first, i_last, j_first, j_last
+  integer                       :: np1, np2
+  integer                       :: n1me, n2me
+  integer,allocatable           :: top(:), left(:)
+
+  np1 = 1
   np2 = 2
   n1me = n1/np1
   n2me = n2/np2
@@ -60,22 +61,22 @@ contains
        b2 = b(n1me,:)
        call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status, ierr)
-       a(n1me,:) = a(n1me,:) + b2
+       a(n1me,:) = a(n1me,:) + epsilon*b2
 
     elseif (nid(4) > 0 .and. nid(2) > 0) then
        call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
-       a(1,:) = a(1,:) + b4
+       a(1,:) = a(1,:) + epsilon*b4
        b4     = b(1,:)
        call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
        
        b2 = b(n1me,:)
        call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status,ierr)
-       a(n1me,:) = a(n1me,:) + b2
+       a(n1me,:) = a(n1me,:) + epsilon*b2
 
     elseif (nid(4) > 0) then
        call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
-       a(1,:) = a(1,:) + b4
+       a(1,:) = a(1,:) + epsilon*b4
        b4     = b(1,:)
        call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
 
@@ -86,22 +87,23 @@ contains
        b3 = b(:,n2me)
        call mpi_send(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status, ierr)
-       a(:,n2me) = a(:,n2me) + b3
+       a(2:n1me-1,n2me) = a(2:n1me-1,n2me) + epsilon*b3(2:n1me-1)
+
 
     elseif (nid(1) > 0 .and. nid(3) > 0) then
        call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
-       a(:,1) = a(:,1) + b1
+       a(:,1) = a(:,1) + epsilon*b1
        b1     = b(:,1)
        call mpi_send(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
        
        b3 = b(:,n2me)
        call mpi_send(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status,ierr)
-       a(:,n2me) = a(:,n2me) + b3
+       a(:,n2me) = a(:,n2me) + epsilon*b3
 
     elseif (nid(1) > 0) then
        call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
-       a(:,1) = a(:,1) + b1
+       a(:,1) = a(:,1) + epsilon*b1
        b1     = b(:,1)
        call mpi_send(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
 
@@ -128,32 +130,31 @@ contains
   subroutine update_edges()
 
     if (nid(1) > 0)  then
-       a(:,1)        = a(:,1)        + b(:,2)        - dble(8.)*b(:,1)
-       a(1:n1me-1,1) = a(1:n1me-1,1) + b(2:n1me  ,2)
-       a(2:n1me  ,1) = a(2:n1me  ,1) + b(1:n1me-1,2)
+       a(:,1)        = a(:,1)        + epsilon*( b(:,2)        - dble(8.)*b(:,1))
+       a(1:n1me-1,1) = a(1:n1me-1,1) + epsilon*b(2:n1me  ,2)
+       a(2:n1me  ,1) = a(2:n1me  ,1) + epsilon*b(1:n1me-1,2)
     end if
 
     if (nid(2) > 0) then
-       a(n1me,:)        = a(n1me,:)        + b(n1me-1,:)     - dble(8.)*b(n1me,:)
-       a(n1me,1:n2me-1) = a(n1me,1:n2me-1) + b(n1me-1,2:n2me)
-       a(n1me,2:n2me)   = a(n1me,2:n2me)   + b(n1me-1,1:n2me-1)
+       a(n1me,:)        = a(n1me,:)        + epsilon*(b(n1me-1,:)     - dble(8.)*b(n1me,:))
+       a(n1me,1:n2me-1) = a(n1me,1:n2me-1) + epsilon*b(n1me-1,2:n2me)
+       a(n1me,2:n2me)   = a(n1me,2:n2me)   + epsilon*b(n1me-1,1:n2me-1)
     end if
 
     if (nid(3) > 0) then
-       a(:,n2me)        = a(:,n2me)        + b(:,n2me-1)     - dble(8.)*b(:,n2me)
-       a(1:n1me-1,n2me) = a(1:n1me-1,n2me) + b(2:n1me  ,n2me-1)
-       a(2:n1me  ,n2me) = a(2:n1me  ,n2me) + b(1:n1me-1,n2me-1)
+       a(:,n2me)        = a(:,n2me)        + epsilon*(b(:,n2me-1)     - dble(8.)*b(:,n2me))
+       a(1:n1me-1,n2me) = a(1:n1me-1,n2me) + epsilon*b(2:n1me  ,n2me-1)
+       a(2:n1me  ,n2me) = a(2:n1me  ,n2me) + epsilon*b(1:n1me-1,n2me-1)
 
     end if
     
     if (nid(4) > 0) then
-       a(1,:)        = a(1,:)        + b(2,:)     - dble(8.)*b(1,:)
-       a(1,1:n2me-1) = a(1,1:n2me-1) + b(2,2:n2me)
-       a(1,2:n2me)   = a(1,2:n2me)   + b(2,1:n2me-1)       
+       a(1,:)        = a(1,:)        + epsilon*(b(2,:)     - dble(8.)*b(1,:))
+       a(1,1:n2me-1) = a(1,1:n2me-1) + epsilon*b(2,2:n2me)
+       a(1,2:n2me)   = a(1,2:n2me)   + epsilon*b(2,1:n2me-1)       
     end if
 
   end subroutine update_edges
-
 
 
   subroutine get_total_norm()
@@ -171,7 +172,6 @@ contains
     else
        call mpi_send(norm,1,mpi_double_precision,0,tag,mpi_comm_world,ierr)
     end if
-
     
   end subroutine get_total_norm
 
