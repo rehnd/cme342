@@ -2,29 +2,26 @@ program main
   implicit none
   include 'mpif.h'
 
-  integer, parameter            :: n1 = 1024, n2 = 1024, niter = 1
-  integer                       :: i, j, n
+  integer                       :: n1 = 1024, n2 = 1024, np1=1, np2=1, niter = 1
+  integer                       :: n1me, n2me
+  integer                       :: nid(4)             ! neighbor id's
   integer                       :: my_id, np, ierr, status
+  integer                       :: i, j, n
+  integer                       :: i_f, i_l, j_f, j_l ! i_first, i_last, j_first, j_last
   double precision              :: norm
   double precision, parameter   :: epsilon = 0.1
-  double precision, allocatable :: a(:,:), b(:,:), b1(:),b2(:),b3(:),b4(:)
-  double precision, allocatable :: x(:)  , y(:)
-  integer                       :: nid(4) ! neighbor id's
-  integer                       :: i_f, i_l, j_f, j_l ! => i_first, i_last, j_first, j_last
-  integer                       :: np1, np2
-  integer                       :: n1me, n2me
-  integer,allocatable           :: top(:), left(:)
+  double precision, allocatable :: a(:,:),b(:,:),b1(:),b2(:),b3(:),b4(:)
+  double precision, allocatable :: x(:), y(:)
+  integer,allocatable           :: top(:), left(:)    ! nodes at the top, left of processor grid
 
-  np1 = 1
-  np2 = 2
-  n1me = n1/np1
-  n2me = n2/np2
-
-  !  MPI Setup, get rank, size, and run tests
+  !  MPI Setup, get rank, size
   call mpi_init(ierr)
   call mpi_comm_size(mpi_comm_world,    np, ierr)
   call mpi_comm_rank(mpi_comm_world, my_id, ierr)
   my_id = my_id + 1
+
+  ! Read in input values and run tests
+  call read_input()
   call check_num_processes()
 
   ! Set up arrays on each processor, get the indices this process will work on
@@ -50,6 +47,39 @@ program main
 
 contains
 
+  subroutine read_input()
+    character(20)  :: filename
+    character(20)  :: arg
+    integer :: i
+    namelist /input_parameters/ n1, n2, np1, np2, niter
+
+    if (iargc() == 0) then
+       if (my_id == 1) then
+          print *,"Error: Please specify a file name"
+          print *, "Usage: "
+          print *, "    mpirun -np <X> ./hw1_<i/ii/iii> -i FILENAME"
+       end if
+       stop
+    else 
+       do i=1,iargc()
+          call getarg(i,arg)
+          if (arg == '-i') then
+             call getarg(i+1,filename)
+             exit
+          else
+             filename = arg
+          end if
+
+       end do
+    end if    
+    
+    open( unit=222, file=filename)
+    read( unit=222, nml = input_parameters)
+    close(unit=222)
+
+    n1me = n1/np1
+    n2me = n2/np2
+  end subroutine read_input
 
   subroutine send_receive()
     integer  :: ip, jp, p, tag=2001
