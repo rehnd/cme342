@@ -1,7 +1,6 @@
 program main
   implicit none
   include 'mpif.h'
-
   integer                       :: n1 = 1024, n2 = 1024, np1=1, np2=1, niter = 1
   integer                       :: n1me, n2me
   integer                       :: nid(4)             ! neighbor id's
@@ -12,7 +11,7 @@ program main
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:),b(:,:),b1(:),b2(:),b3(:),b4(:)
   double precision, allocatable :: x(:), y(:)
-  integer,allocatable           :: top(:), left(:)    ! nodes at the top, left of processor grid
+  integer,          allocatable :: top(:), left(:)    ! nodes at the top, left of processor grid
 
   !  MPI Setup, get rank, size
   call mpi_init(ierr)
@@ -30,11 +29,12 @@ program main
   call initialize_arrays()
   nid = get_neighbor_ids(my_id)
 
+  !call reset_ifl_jfl()  ! Must be called AFTER get_my_ij() and BEFORE send_receive()
+
   ! Main loop. Inside, update the interior points on each process and send data
   do n = 1, niter
-     call send_receive()
-     call update_interior()
      call update_edges()
+     call update_interior()
      b=a
   end do
 
@@ -47,41 +47,8 @@ program main
 
 contains
 
-  subroutine read_input()
-    character(20)  :: filename
-    character(20)  :: arg
-    integer :: i
-    namelist /input_parameters/ n1, n2, np1, np2, niter
 
-    if (iargc() == 0) then
-       if (my_id == 1) then
-          print *,"Error: Please specify a file name"
-          print *, "Usage: "
-          print *, "    mpirun -np <X> ./hw1_<i/ii/iii> -i FILENAME"
-       end if
-       stop
-    else 
-       do i=1,iargc()
-          call getarg(i,arg)
-          if (arg == '-i') then
-             call getarg(i+1,filename)
-             exit
-          else
-             filename = arg
-          end if
-
-       end do
-    end if    
-    
-    open( unit=222, file=filename)
-    read( unit=222, nml = input_parameters)
-    close(unit=222)
-
-    n1me = n1/np1
-    n2me = n2/np2
-  end subroutine read_input
-
-  subroutine send_receive()
+  subroutine update_edges()
     integer  :: ip, jp, p, tag=2001
     integer  :: cid         ! current id
     integer  :: cid_nid(4)  ! current id's neighbors
@@ -91,11 +58,58 @@ contains
        b2 = b(n1me,:)
        call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status, ierr)
-       a(n1me,:) = a(n1me,:) + epsilon*b2
+
+       ! Immediately fill b1(end), b3(end) to account for corner values
+       b1(n1me+2) = b2(1)
+       b3(n1me+2) = b2(n2me)
+
+       ! Perform a complete update of the interior edge elements
+       a(n1me,2:n2me-1) = b(n1me,2:n2me-1) + epsilon*( & 
+            + b2(2:n2me-1)                             & ! below
+            + b2(1:n2me-2)                             & ! below-left
+            + b2(3:n2me)                               & ! below-right
+            + b(n1me,1:n2me-2)                         & ! left
+            - dble(8.)*b(n1me,2:n2me-1)                & ! yourself
+            + b(n1me,3:n2me)                           & ! right
+            + b(n1me-1,2:n2me-1)                       & ! add elements directly above
+            + b(n1me-1,1:n2me-2)                       & ! add elements above-left
+            + b(n1me-1,3:n2me)                         & ! add elements above-right
+            )
+
+       ! Treat interior node corners as a special case, doing a *partial* update
+       if (nid(1) > 0) then
+          a(n1me,1) = b(n1me,1) + epsilon*(       &
+               b(n1me-1,1) + b(n1me-1,2) +        & ! up, up-right
+               b(n1me,2)  - dble(8.)*b(n1me,1) +  & ! yourself, right
+               b2(2) + b2(1))                       ! below, below-right
+       end if
+
+       if (nid(3) > 0) then
+          a(n1me,n2me) = b(n1me,n2me) + epsilon*(       &
+               b(n1me-1,n2me) + b(n1me-1,n2me-1) +      & ! up, up-left
+               b(n1me,n2me-1) - dble(8.)*b(n1me,n2me) + & ! me, left
+               b2(n2me-1)+b2(n2me))                       ! below, below-left
+       end if
 
     elseif (nid(4) > 0 .and. nid(2) > 0) then
        call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
-       a(1,:) = a(1,:) + epsilon*b4
+       ! Immediately fill b1(1), b3(1)
+       b1(1) = b4(1)
+       b3(1) = b4(n2me)
+
+       ! Perform complete update of the interior edge elements
+       a(1,2:n2me-1) = b(1,2:n2me-1) + epsilon*( &
+            + b4(2:n2me-1)           & ! above
+            + b4(1:n2me-2)           & ! above-left
+            + b4(3:n2me)             & ! above-right
+            + b(1,1:n2me-2)          & ! left
+            - dble(8.)*b(1,2:n2me-1) & ! yourself 
+            + b(1,3:n2me)            & ! right
+            + b(2,2:n2me-1)          & ! below
+            + b(2,1:n2me-2)          & ! below-left
+            + b(3,1:n2me)            & ! below-right
+       )
+
        b4     = b(1,:)
        call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
        
@@ -119,7 +133,6 @@ contains
        call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status, ierr)
        a(2:n1me-1,n2me) = a(2:n1me-1,n2me) + epsilon*b3(2:n1me-1)
 
-
     elseif (nid(1) > 0 .and. nid(3) > 0) then
        call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
        a(:,1) = a(:,1) + epsilon*b1
@@ -139,7 +152,7 @@ contains
 
     end if
 
-  end subroutine send_receive
+  end subroutine update_edges
 
 
   subroutine update_interior()
@@ -155,36 +168,6 @@ contains
     end do
 
   end subroutine update_interior
-
-
-  subroutine update_edges()
-
-    if (nid(1) > 0)  then
-       a(:,1)        = a(:,1)        + epsilon*( b(:,2)        - dble(8.)*b(:,1))
-       a(1:n1me-1,1) = a(1:n1me-1,1) + epsilon*b(2:n1me  ,2)
-       a(2:n1me  ,1) = a(2:n1me  ,1) + epsilon*b(1:n1me-1,2)
-    end if
-
-    if (nid(2) > 0) then
-       a(n1me,:)        = a(n1me,:)        + epsilon*(b(n1me-1,:)     - dble(8.)*b(n1me,:))
-       a(n1me,1:n2me-1) = a(n1me,1:n2me-1) + epsilon*b(n1me-1,2:n2me)
-       a(n1me,2:n2me)   = a(n1me,2:n2me)   + epsilon*b(n1me-1,1:n2me-1)
-    end if
-
-    if (nid(3) > 0) then
-       a(:,n2me)        = a(:,n2me)        + epsilon*(b(:,n2me-1)     - dble(8.)*b(:,n2me))
-       a(1:n1me-1,n2me) = a(1:n1me-1,n2me) + epsilon*b(2:n1me  ,n2me-1)
-       a(2:n1me  ,n2me) = a(2:n1me  ,n2me) + epsilon*b(1:n1me-1,n2me-1)
-
-    end if
-    
-    if (nid(4) > 0) then
-       a(1,:)        = a(1,:)        + epsilon*(b(2,:)     - dble(8.)*b(1,:))
-       a(1,1:n2me-1) = a(1,1:n2me-1) + epsilon*b(2,2:n2me)
-       a(1,2:n2me)   = a(1,2:n2me)   + epsilon*b(2,1:n2me-1)       
-    end if
-
-  end subroutine update_edges
 
 
   subroutine get_total_norm()
@@ -212,9 +195,9 @@ contains
     allocate(x(n1me))
     allocate(y(n2me))
 
-    allocate(b1(n1me))
+    allocate(b1(n1me+2))  ! +2 is for ghost cells for the 'corners'
     allocate(b2(n2me))
-    allocate(b3(n1me))
+    allocate(b3(n1me+2))  ! +2 is for ghost cells for the 'corners'
     allocate(b4(n2me))
 
     allocate( top(np2))
@@ -341,5 +324,100 @@ contains
     end if
 
   end subroutine initialize_arrays
+
+
+  subroutine read_input()
+    character(20)  :: filename
+    character(20)  :: arg
+    integer :: i
+    namelist /input_parameters/ n1, n2, np1, np2, niter
+
+    if (iargc() == 0) then
+       if (my_id == 1) then
+          print *,"Error: Please specify a file name"
+          print *, "Usage: "
+          print *, "    mpirun -np <X> ./hw1_<i/ii/iii> -i FILENAME"
+       end if
+       stop
+    else 
+       do i=1,iargc()
+          call getarg(i,arg)
+          if (arg == '-i') then
+             call getarg(i+1,filename)
+             exit
+          else
+             filename = arg
+          end if
+
+       end do
+    end if    
+    
+    open( unit=222, file=filename)
+    read( unit=222, nml = input_parameters)
+    close(unit=222)
+
+    n1me = n1/np1
+    n2me = n2/np2
+  end subroutine read_input
+
+
+  ! subroutine reset_ifl_jfl()
+  !   ! Before calling this, 'edge' nodes have values i_f, j_f, i_l, j_l that 
+  !   ! contain their spot in the global array. 
+  !   ! 
+  !   ! When updating the computational cell, we only need the position of indices in 
+  !   ! the local array. It is also much easier to exclude the border elements from
+  !   ! all indices, so for example, since node 1 contains nothing on the left (W) and
+  !   ! top (N), we want j_f = 2 and i_f = 2, respectively. Similarly, we have to decrement 
+  !   ! j_l and i_l if we are on a boundary to the right (E) and bottom (S), respectively
+  !   logical           :: printtest = .false.
+  !   character(len=10) :: fmt = '(5I)'
+
+  !   i_f = 1
+  !   j_f = 1
+  !   i_l = n1me
+  !   j_l = n2me
+
+  !   if (nid(1) < 0) j_f = j_f + 1
+  !   if (nid(2) < 0) i_l = i_l - 1
+  !   if (nid(3) < 0) j_l = j_l - 1
+  !   if (nid(4) < 0) i_f = i_f + 1
+
+  !   if (printtest) then
+  !      if (my_id == 1) write(*,'(5A12)') 'my_id', 'i_f', 'i_l', 'j_f', 'j_l'
+  !      write(*,fmt) my_id, i_f, i_l, j_f, j_l
+  !   end if
+    
+  ! end subroutine reset_ifl_jfl
+
+  ! subroutine update_edges()
+
+  !   if (nid(1) > 0)  then
+  !      a(:,1)        = a(:,1)        + epsilon*( b(:,2)        - dble(8.)*b(:,1))
+  !      a(1:n1me-1,1) = a(1:n1me-1,1) + epsilon*b(2:n1me  ,2)
+  !      a(2:n1me  ,1) = a(2:n1me  ,1) + epsilon*b(1:n1me-1,2)
+  !   end if
+
+  !   if (nid(2) > 0) then
+  !      a(n1me,:)        = a(n1me,:)        + epsilon*(b(n1me-1,:)     - dble(8.)*b(n1me,:))
+  !      a(n1me,1:n2me-1) = a(n1me,1:n2me-1) + epsilon*b(n1me-1,2:n2me)
+  !      a(n1me,2:n2me)   = a(n1me,2:n2me)   + epsilon*b(n1me-1,1:n2me-1)
+  !   end if
+
+  !   if (nid(3) > 0) then
+  !      a(:,n2me)        = a(:,n2me)        + epsilon*(b(:,n2me-1)     - dble(8.)*b(:,n2me))
+  !      a(1:n1me-1,n2me) = a(1:n1me-1,n2me) + epsilon*b(2:n1me  ,n2me-1)
+  !      a(2:n1me  ,n2me) = a(2:n1me  ,n2me) + epsilon*b(1:n1me-1,n2me-1)
+
+  !   end if
+    
+  !   if (nid(4) > 0) then
+  !      a(1,:)        = a(1,:)        + epsilon*(b(2,:)     - dble(8.)*b(1,:))
+  !      a(1,1:n2me-1) = a(1,1:n2me-1) + epsilon*b(2,2:n2me)
+  !      a(1,2:n2me)   = a(1,2:n2me)   + epsilon*b(2,1:n2me-1)       
+  !   end if
+
+  ! end subroutine update_edges
+
 
 end program main
