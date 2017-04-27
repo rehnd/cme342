@@ -1,7 +1,7 @@
 program main
   implicit none
 
-  integer, parameter   :: n1 = 1024, n2 = 1024, niter = 1
+  integer, parameter   :: n1 = 1024, n2 = 1024, niter = 100
   integer              :: i, j, n
   real(8), parameter   :: epsilon = 0.1
   real(8), allocatable :: a(:,:), b(:,:)

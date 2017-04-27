@@ -117,28 +117,41 @@ contains
   end subroutine update_edges
 
   
-  subroutine update_W_edge()
-    ! Update interior points
-    a(2:n1me-1,1) = b(2:n1me-1,1) + epsilon*( &
-         + b1(2:n1me-1)              & ! left-up
-         + b1(3:n1me)                & ! left
-         + b1(4:n1me+1)              & ! left-down
-         + b(1:n1me-2,1)             & ! up
-         - b(2:n1me-1,1)*dble(8.)    & ! yourself
-         + b(3:n1me,  1)             & ! down
-         + b(1:n1me-2,2)             & ! right-up
-         + b(2:n1me-1,2)             & ! right
-         + b(3:n1me,  2)             & ! right-down
+  subroutine update_N_edge()
+    ! Immediately fill b1(1), b3(1)
+    b1(1) = b4(1)
+    b3(1) = b4(n2me)
+
+    ! Perform complete update of the interior edge elements
+    a(1,2:n2me-1) = b(1,2:n2me-1) + epsilon*( &
+         + b4(2:n2me-1)           & ! above
+         + b4(1:n2me-2)           & ! above-left
+         + b4(3:n2me)             & ! above-right
+         + b(1,1:n2me-2)          & ! left
+         - b(1,2:n2me-1)*dble(8.) & ! yourself 
+         + b(1,3:n2me)            & ! right
+         + b(2,1:n2me-2)          & ! below-left
+         + b(2,2:n2me-1)          & ! below
+         + b(2,3:n2me)            & ! below-right
          )
 
-    ! Update top corner
-    if (nid(4) > 0) a(1,1) = a(1,1) + epsilon*(b1(1) + b1(2) + b1(3))
+    ! Treat node corners as special case
+    if (nid(1) > 0) then
+       a(1,1) = b(1,1) + epsilon*(      &
+            + b4(1) + b4(2)             & ! up, up-right
+            + b(1,2) - dble(8.)*b(1,1)  & ! yourself, right
+            + b(2,1) + b(2,2) )           ! below, below-right
+    end if
 
-    ! Update bottom corner
-    if (nid(2) > 0) a(n1me,1) = a(n1me,1) + epsilon*(b1(n1me+2)+b1(n1me+1)+b1(n1me))
+    if (nid(3) > 0) then
+       a(1,n2me) = b(1,n2me) + epsilon*(      &
+            + b4(n2me-1) + b4(n2me)           & ! up, up-left
+            + b(1,n2me-1) -dble(8.)*b(1,n2me) & ! yourself, left
+            + b(2,n2me-1) + b(2,n2me))          ! below, below-left
+    end if
 
-  end subroutine update_W_edge
-
+  end subroutine update_N_edge
+  
 
   subroutine update_S_edge()
     ! Immediately fill b1(end), b3(end) to account for corner values
@@ -176,6 +189,29 @@ contains
   end subroutine update_S_edge
 
 
+  subroutine update_W_edge()
+    ! Update interior points
+    a(2:n1me-1,1) = b(2:n1me-1,1) + epsilon*( &
+         + b1(2:n1me-1)              & ! left-up
+         + b1(3:n1me)                & ! left
+         + b1(4:n1me+1)              & ! left-down
+         + b(1:n1me-2,1)             & ! up
+         - b(2:n1me-1,1)*dble(8.)    & ! yourself
+         + b(3:n1me,  1)             & ! down
+         + b(1:n1me-2,2)             & ! right-up
+         + b(2:n1me-1,2)             & ! right
+         + b(3:n1me,  2)             & ! right-down
+         )
+
+    ! Update top corner
+    if (nid(4) > 0) a(1,1) = a(1,1) + epsilon*(b1(1) + b1(2) + b1(3))
+
+    ! Update bottom corner
+    if (nid(2) > 0) a(n1me,1) = a(n1me,1) + epsilon*(b1(n1me+2)+b1(n1me+1)+b1(n1me))
+
+  end subroutine update_W_edge
+
+
   subroutine update_E_edge()
     ! Update interior points
     a(2:n1me-1,n2me) = b(2:n1me-1,n2me) + epsilon*( &
@@ -198,42 +234,6 @@ contains
 
   end subroutine update_E_edge
 
-
-  subroutine update_N_edge()
-    ! Immediately fill b1(1), b3(1)
-    b1(1) = b4(1)
-    b3(1) = b4(n2me)
-
-    ! Perform complete update of the interior edge elements
-    a(1,2:n2me-1) = b(1,2:n2me-1) + epsilon*( &
-         + b4(2:n2me-1)           & ! above
-         + b4(1:n2me-2)           & ! above-left
-         + b4(3:n2me)             & ! above-right
-         + b(1,1:n2me-2)          & ! left
-         - b(1,2:n2me-1)*dble(8.) & ! yourself 
-         + b(1,3:n2me)            & ! right
-         + b(2,1:n2me-2)          & ! below-left
-         + b(2,2:n2me-1)          & ! below
-         + b(2,3:n2me)            & ! below-right
-         )
-
-    ! Treat node corners as special case
-    if (nid(1) > 0) then
-       a(1,1) = b(1,1) + epsilon*(      &
-            + b4(1) + b4(2)             & ! up, up-right
-            + b(1,2) - dble(8.)*b(1,1)  & ! yourself, right
-            + b(2,1) + b(2,2) )           ! below, below-right
-    end if
-
-    if (nid(3) > 0) then
-       a(1,n2me) = b(1,n2me) + epsilon*(      &
-            + b4(n2me-1) + b4(n2me)           & ! up, up-left
-            + b(1,n2me-1) -dble(8.)*b(1,n2me) & ! yourself, left
-            + b(2,n2me-1) + b(2,n2me))          ! below, below-left
-    end if
-
-  end subroutine update_N_edge
-  
 
   subroutine update_interior()
     integer :: i, j
@@ -439,65 +439,6 @@ contains
     n1me = n1/np1
     n2me = n2/np2
   end subroutine read_input
-
-
-  ! subroutine reset_ifl_jfl()
-  !   ! Before calling this, 'edge' nodes have values i_f, j_f, i_l, j_l that 
-  !   ! contain their spot in the global array. 
-  !   ! 
-  !   ! When updating the computational cell, we only need the position of indices in 
-  !   ! the local array. It is also much easier to exclude the border elements from
-  !   ! all indices, so for example, since node 1 contains nothing on the left (W) and
-  !   ! top (N), we want j_f = 2 and i_f = 2, respectively. Similarly, we have to decrement 
-  !   ! j_l and i_l if we are on a boundary to the right (E) and bottom (S), respectively
-  !   logical           :: printtest = .false.
-  !   character(len=10) :: fmt = '(5I)'
-
-  !   i_f = 1
-  !   j_f = 1
-  !   i_l = n1me
-  !   j_l = n2me
-
-  !   if (nid(1) < 0) j_f = j_f + 1
-  !   if (nid(2) < 0) i_l = i_l - 1
-  !   if (nid(3) < 0) j_l = j_l - 1
-  !   if (nid(4) < 0) i_f = i_f + 1
-
-  !   if (printtest) then
-  !      if (my_id == 1) write(*,'(5A12)') 'my_id', 'i_f', 'i_l', 'j_f', 'j_l'
-  !      write(*,fmt) my_id, i_f, i_l, j_f, j_l
-  !   end if
-    
-  ! end subroutine reset_ifl_jfl
-
-  ! subroutine update_edges()
-
-  !   if (nid(1) > 0)  then
-  !      a(:,1)        = a(:,1)        + epsilon*( b(:,2)        - dble(8.)*b(:,1))
-  !      a(1:n1me-1,1) = a(1:n1me-1,1) + epsilon*b(2:n1me  ,2)
-  !      a(2:n1me  ,1) = a(2:n1me  ,1) + epsilon*b(1:n1me-1,2)
-  !   end if
-
-  !   if (nid(2) > 0) then
-  !      a(n1me,:)        = a(n1me,:)        + epsilon*(b(n1me-1,:)     - dble(8.)*b(n1me,:))
-  !      a(n1me,1:n2me-1) = a(n1me,1:n2me-1) + epsilon*b(n1me-1,2:n2me)
-  !      a(n1me,2:n2me)   = a(n1me,2:n2me)   + epsilon*b(n1me-1,1:n2me-1)
-  !   end if
-
-  !   if (nid(3) > 0) then
-  !      a(:,n2me)        = a(:,n2me)        + epsilon*(b(:,n2me-1)     - dble(8.)*b(:,n2me))
-  !      a(1:n1me-1,n2me) = a(1:n1me-1,n2me) + epsilon*b(2:n1me  ,n2me-1)
-  !      a(2:n1me  ,n2me) = a(2:n1me  ,n2me) + epsilon*b(1:n1me-1,n2me-1)
-
-  !   end if
-    
-  !   if (nid(4) > 0) then
-  !      a(1,:)        = a(1,:)        + epsilon*(b(2,:)     - dble(8.)*b(1,:))
-  !      a(1,1:n2me-1) = a(1,1:n2me-1) + epsilon*b(2,2:n2me)
-  !      a(1,2:n2me)   = a(1,2:n2me)   + epsilon*b(2,1:n2me-1)       
-  !   end if
-
-  ! end subroutine update_edges
 
 
 end program main
