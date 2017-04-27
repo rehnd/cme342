@@ -13,7 +13,7 @@ program main
   double precision, allocatable :: x(:), y(:)
   integer,          allocatable :: top(:), left(:)    ! nodes at the top, left of processor grid
 
-  !  MPI Setup, get rank, size
+  !  MPI Setup, get rank, size. Increment my_id by 1 for Fortran 1-based indexing
   call mpi_init(ierr)
   call mpi_comm_size(mpi_comm_world,    np, ierr)
   call mpi_comm_rank(mpi_comm_world, my_id, ierr)
@@ -29,15 +29,14 @@ program main
   call initialize_arrays()
   nid = get_neighbor_ids(my_id)
 
-  !call reset_ifl_jfl()  ! Must be called AFTER get_my_ij() and BEFORE send_receive()
-
-  ! Main loop. Inside, update the interior points on each process and send data
+  ! Main loop. Inside, update the interior & edge points on each processor
   do n = 1, niter
      call update_edges()
      call update_interior()
      b=a
   end do
 
+  ! Compute the norm as a quick means of testing correctness
   call get_total_norm()
   if (my_id == 1) print *, "norm(a) = ", norm
 
@@ -87,31 +86,31 @@ contains
 
     ! Send and receive W to E (nid(1) = W, nid(3) = E)
     if (any(left == my_id) .and. nid(3) > 0) then
-       b3(2:n1me-1) = b(:,n2me)
-       call mpi_send(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
-       call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status, ierr)
+       b3(2:n1me+1) = b(:,n2me)
+       call mpi_send(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
+       call mpi_recv(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status, ierr)
        
        call update_E_edge()
 
     elseif (nid(1) > 0 .and. nid(3) > 0) then
-       call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
+       call mpi_recv(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
        call update_W_edge()
 
-       b1(2:n1me-1) = b(:,1)
-       call mpi_send(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
+       b1(2:n1me+1) = b(:,1)
+       call mpi_send(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
        
-       b3(2:n1me-1) = b(:,n2me)
-       call mpi_send(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
-       call mpi_recv(b3,n1me,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status,ierr)
+       b3(2:n1me+1) = b(:,n2me)
+       call mpi_send(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
+       call mpi_recv(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status,ierr)
 
        call update_E_edge()
 
     elseif (nid(1) > 0) then
-       call mpi_recv(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
+       call mpi_recv(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
        call update_W_edge()
 
-       b1(2:n1me-1)  = b(:,1)
-       call mpi_send(b1,n1me,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
+       b1(2:n1me+1)  = b(:,1)
+       call mpi_send(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
 
     end if
 
@@ -125,18 +124,18 @@ contains
          + b1(3:n1me)                & ! left
          + b1(4:n1me+1)              & ! left-down
          + b(1:n1me-2,1)             & ! up
-         - dble(8.)*b(2:n2me-1,1)    & ! yourself
-         + b(3:n2me,  1)             & ! down
+         - b(2:n1me-1,1)*dble(8.)    & ! yourself
+         + b(3:n1me,  1)             & ! down
          + b(1:n1me-2,2)             & ! right-up
          + b(2:n1me-1,2)             & ! right
          + b(3:n1me,  2)             & ! right-down
          )
 
     ! Update top corner
-    a(1,1) = a(1,1) + epsilon*(b1(1) + b1(2) + b1(3))
+    if (nid(4) > 0) a(1,1) = a(1,1) + epsilon*(b1(1) + b1(2) + b1(3))
 
     ! Update bottom corner
-    a(n1me,1) = a(n1me,1) + epsilon*(b1(n1me+2)+b1(n1me+1)+b1(n1me))
+    if (nid(2) > 0) a(n1me,1) = a(n1me,1) + epsilon*(b1(n1me+2)+b1(n1me+1)+b1(n1me))
 
   end subroutine update_W_edge
 
@@ -152,14 +151,14 @@ contains
          + b2(1:n2me-2)                             & ! below-left
          + b2(3:n2me)                               & ! below-right
          + b(n1me,1:n2me-2)                         & ! left
-         - dble(8.)*b(n1me,2:n2me-1)                & ! yourself
+         - b(n1me,2:n2me-1)*dble(8.)                & ! yourself
          + b(n1me,3:n2me)                           & ! right
-         + b(n1me-1,2:n2me-1)                       & ! add elements directly above
-         + b(n1me-1,1:n2me-2)                       & ! add elements above-left
-         + b(n1me-1,3:n2me)                         & ! add elements above-right
+         + b(n1me-1,2:n2me-1)                       & ! above
+         + b(n1me-1,1:n2me-2)                       & ! above-left
+         + b(n1me-1,3:n2me)                         & ! above-right
          )
 
-    ! Treat interior node corners as a special case, doing a *partial* update
+    ! Treat corners as a special case, doing a *partial* update
     if (nid(1) > 0) then
        a(n1me,1) = b(n1me,1) + epsilon*(       &
             b(n1me-1,1) + b(n1me-1,2) +        & ! up, up-right
@@ -184,18 +183,18 @@ contains
          + b3(3:n1me)                & ! right
          + b3(4:n1me+1)              & ! right-down
          + b(1:n1me-2,n2me)          & ! up
-         - dble(8.)*b(2:n2me-1,n2me) & ! yourself
-         + b(3:n2me,  n2me)          & ! down
+         - b(2:n1me-1,n2me)*dble(8.) & ! yourself
+         + b(3:n1me,  n2me)          & ! down
          + b(1:n1me-2,n2me-1)        & ! left-up
          + b(2:n1me-1,n2me-1)        & ! left
          + b(3:n1me,  n2me-1)        & ! left-down
          )
 
     ! Update top corner
-    a(1,n2me) = a(1,n2me) + epsilon*(b3(1) + b3(2) + b3(3))
+    if (nid(4) > 0) a(1,n2me) = a(1,n2me) + epsilon*(b3(1) + b3(2) + b3(3))
 
     ! Update bottom corner
-    a(n1me,n2me) = a(n1me,n2me) + epsilon*(b3(n1me+2)+b3(n1me+1)+b3(n1me))
+    if (nid(2) > 0) a(n1me,n2me) = a(n1me,n2me) + epsilon*(b3(n1me+2)+b3(n1me+1)+b3(n1me))
 
   end subroutine update_E_edge
 
@@ -211,11 +210,11 @@ contains
          + b4(1:n2me-2)           & ! above-left
          + b4(3:n2me)             & ! above-right
          + b(1,1:n2me-2)          & ! left
-         - dble(8.)*b(1,2:n2me-1) & ! yourself 
+         - b(1,2:n2me-1)*dble(8.) & ! yourself 
          + b(1,3:n2me)            & ! right
-         + b(2,2:n2me-1)          & ! below
          + b(2,1:n2me-2)          & ! below-left
-         + b(3,1:n2me)            & ! below-right
+         + b(2,2:n2me-1)          & ! below
+         + b(2,3:n2me)            & ! below-right
          )
 
     ! Treat node corners as special case
@@ -372,20 +371,20 @@ contains
     logical           :: testvals = .false.
     character(len=20) :: fmt = "(1I,2F12.2)"
 
-    do i = 1, n1/np1
+    do i = 1, n1me
        x(i) = 1./dble(n1-1)*dble(i+i_f-2)
     end do
     
-    do j = 1, n2/np2
+    do j = 1, n2me
        y(j) = 1./dble(n2-1)*dble(j+j_f-2)
     end do
 
-    do j = 1, n2/np2
-       do i = 1, n1/np1
+    do j = 1, n2me
+       do i = 1, n1me
           if (x(i) .lt. 0.5) then
-             a(i,j) = cos(x(i+i_f-1)+y(j+j_f-1))
+             a(i,j) = cos(x(i)+y(j))
           else
-             a(i,j) = sin(x(i+i_f-1)+y(j+j_f-1))
+             a(i,j) = sin(x(i)+y(j))
           end if
           b(i,j) = a(i,j)
        end do
