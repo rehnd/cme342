@@ -10,7 +10,7 @@ program main
   double precision              :: norm
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:),b(:,:)
-  double precision, allocatable :: b1a(:),b1b(:),b2a(:),b2b(:),b3a(:),b3b(:),b4a(:),b4b(:)
+  double precision, allocatable :: b1w(:),b1me(:),b2s(:),b2me(:),b3e(:),b3me(:),b4n(:),b4me(:)
   double precision, allocatable :: x(:), y(:)
   integer,          allocatable :: top(:), left(:)    ! nodes at the top, left of processor grid
 
@@ -55,79 +55,91 @@ contains
 
     ! Send and receive N to S (nid(4) = N, nid(2) = S)
     if (any(top == my_id) .and. nid(2) > 0) then
-       b2a = b(n1me,:)
-       call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
-       call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status, ierr)
 
+       b2me = b(n1me,:)
+       call mpi_sendrecv( &
+            b2me,n2me,mpi_double_precision,nid(2)-1,tag, &
+            b2s, n2me,mpi_double_precision,nid(2)-1,tag, &
+            mpi_comm_world,status,ierr)
        call update_S_edge()
 
     elseif (nid(4) > 0 .and. nid(2) > 0) then
-       call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
 
+       b4me = b(1,:)
+       call mpi_sendrecv( &
+            b4me,n2me,mpi_double_precision,nid(4)-1,tag,&
+            b4n ,n2me,mpi_double_precision,nid(4)-1,tag,&
+            mpi_comm_world,status,ierr)
        call update_N_edge()
-
-       b4 = b(1,:)   ! Do not overwrite b4 until *after* updating N edge
-       call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
        
-       b2 = b(n1me,:)
-       call mpi_send(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
-       call mpi_recv(b2,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status,ierr)
-
+       b2me = b(n1me,:)
+       call mpi_sendrecv( &
+            b2me,n2me,mpi_double_precision,nid(2)-1,tag, &
+            b2s ,n2me,mpi_double_precision,nid(2)-1,tag, &
+            mpi_comm_world,status,ierr)
        call update_S_edge()
 
     elseif (nid(4) > 0) then
-       call mpi_recv(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
 
+       b4me = b(1,:)
+       call mpi_sendrecv( &
+            b4me,n2me,mpi_double_precision,nid(4)-1,tag, &
+            b4n, n2me,mpi_double_precision,nid(4)-1,tag, &
+            mpi_comm_world,status,ierr)
        call update_N_edge()
        
-       b4 = b(1,:)   ! Do not overwrite b4 until *after* updating N edge
-       call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
-
     end if
 
     ! Send and receive W to E (nid(1) = W, nid(3) = E)
     if (any(left == my_id) .and. nid(3) > 0) then
-       b3(2:n1me+1) = b(:,n2me)
-       call mpi_send(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
-       call mpi_recv(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status, ierr)
-       
+
+       b3me(2:n1me+1) = b(:,n2me)
+       call mpi_sendrecv( &
+            b3me,n1me+2,mpi_double_precision,nid(3)-1,tag, &
+            b3e, n1me+2,mpi_double_precision,nid(3)-1,tag, &
+            mpi_comm_world,status,ierr)
        call update_E_edge()
 
     elseif (nid(1) > 0 .and. nid(3) > 0) then
-       call mpi_recv(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
+
+       b1me(2:n1me+1) = b(:,1)
+       call mpi_sendrecv( &
+            b1me,n1me+2,mpi_double_precision,nid(1)-1,tag, &
+            b1w, n1me+2,mpi_double_precision,nid(1)-1,tag, &
+            mpi_comm_world,status,ierr)
        call update_W_edge()
 
-       b1(2:n1me+1) = b(:,1)
-       call mpi_send(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
-       
-       b3(2:n1me+1) = b(:,n2me)
-       call mpi_send(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
-       call mpi_recv(b3,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status,ierr)
-
+       b3me(2:n1me+1) = b(:,n2me)
+       call mpi_sendrecv( &
+            b3me,n1me+2,mpi_double_precision,nid(3)-1,tag, &
+            b3e, n1me+2,mpi_double_precision,nid(3)-1,tag, &
+            mpi_comm_world,status,ierr)
        call update_E_edge()
 
     elseif (nid(1) > 0) then
-       call mpi_recv(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
-       call update_W_edge()
 
-       b1(2:n1me+1)  = b(:,1)
-       call mpi_send(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
+       b1me(2:n1me+1)  = b(:,1)
+       call mpi_sendrecv( &
+            b1me,n1me+2,mpi_double_precision,nid(1)-1,tag, &
+            b1w, n1me+2,mpi_double_precision,nid(1)-1,tag, &
+            mpi_comm_world,status,ierr)
+       call update_W_edge()
 
     end if
 
   end subroutine update_edges
 
-  
+
   subroutine update_N_edge()
     ! Immediately fill b1(1), b3(1)
-    b1(1) = b4(1)
-    b3(1) = b4(n2me)
+    b1me(1) = b4n(1)
+    b3me(1) = b4n(n2me)
 
     ! Perform complete update of the interior edge elements
     a(1,2:n2me-1) = b(1,2:n2me-1) + epsilon*( &
-         + b4(2:n2me-1)           & ! above
-         + b4(1:n2me-2)           & ! above-left
-         + b4(3:n2me)             & ! above-right
+         + b4n(2:n2me-1)          & ! above
+         + b4n(1:n2me-2)          & ! above-left
+         + b4n(3:n2me)            & ! above-right
          + b(1,1:n2me-2)          & ! left
          - b(1,2:n2me-1)*dble(8.) & ! yourself 
          + b(1,3:n2me)            & ! right
@@ -139,14 +151,14 @@ contains
     ! Treat node corners as special case
     if (nid(1) > 0) then
        a(1,1) = b(1,1) + epsilon*(      &
-            + b4(1) + b4(2)             & ! up, up-right
+            + b4n(1) + b4n(2)           & ! up, up-right
             + b(1,2) - dble(8.)*b(1,1)  & ! yourself, right
             + b(2,1) + b(2,2) )           ! below, below-right
     end if
 
     if (nid(3) > 0) then
        a(1,n2me) = b(1,n2me) + epsilon*(      &
-            + b4(n2me-1) + b4(n2me)           & ! up, up-left
+            + b4n(n2me-1) + b4n(n2me)         & ! up, up-left
             + b(1,n2me-1) -dble(8.)*b(1,n2me) & ! yourself, left
             + b(2,n2me-1) + b(2,n2me))          ! below, below-left
     end if
@@ -156,14 +168,14 @@ contains
 
   subroutine update_S_edge()
     ! Immediately fill b1(end), b3(end) to account for corner values
-    b1(n1me+2) = b2(1)
-    b3(n1me+2) = b2(n2me)
+    b1me(n1me+2) = b2s(1)
+    b3me(n1me+2) = b2s(n2me)
 
     ! Perform a complete update of the interior edge elements |_|x|x|...|x|x|_|
     a(n1me,2:n2me-1) = b(n1me,2:n2me-1) + epsilon*( & 
-         + b2(2:n2me-1)                             & ! below
-         + b2(1:n2me-2)                             & ! below-left
-         + b2(3:n2me)                               & ! below-right
+         + b2s(2:n2me-1)                            & ! below
+         + b2s(1:n2me-2)                            & ! below-left
+         + b2s(3:n2me)                              & ! below-right
          + b(n1me,1:n2me-2)                         & ! left
          - b(n1me,2:n2me-1)*dble(8.)                & ! yourself
          + b(n1me,3:n2me)                           & ! right
@@ -177,14 +189,14 @@ contains
        a(n1me,1) = b(n1me,1) + epsilon*(       &
             b(n1me-1,1) + b(n1me-1,2) +        & ! up, up-right
             b(n1me,2)  - dble(8.)*b(n1me,1) +  & ! yourself, right
-            b2(2) + b2(1))                       ! below, below-right
+            b2s(2) + b2s(1))                     ! below, below-right
     end if
 
     if (nid(3) > 0) then
        a(n1me,n2me) = b(n1me,n2me) + epsilon*(        &
             + b(n1me-1,n2me) + b(n1me-1,n2me-1)       & ! up, up-left
             + b(n1me,n2me-1) - dble(8.)*b(n1me,n2me)  & ! me, left
-            + b2(n2me-1)+b2(n2me))                      ! below, below-left
+            + b2s(n2me-1)+b2s(n2me))                    ! below, below-left
     end if
 
   end subroutine update_S_edge
@@ -193,9 +205,9 @@ contains
   subroutine update_W_edge()
     ! Update interior points
     a(2:n1me-1,1) = b(2:n1me-1,1) + epsilon*( &
-         + b1(2:n1me-1)              & ! left-up
-         + b1(3:n1me)                & ! left
-         + b1(4:n1me+1)              & ! left-down
+         + b1w(2:n1me-1)             & ! left-up
+         + b1w(3:n1me)               & ! left
+         + b1w(4:n1me+1)             & ! left-down
          + b(1:n1me-2,1)             & ! up
          - b(2:n1me-1,1)*dble(8.)    & ! yourself
          + b(3:n1me,  1)             & ! down
@@ -205,10 +217,10 @@ contains
          )
 
     ! Update top corner
-    if (nid(4) > 0) a(1,1) = a(1,1) + epsilon*(b1(1) + b1(2) + b1(3))
+    if (nid(4) > 0) a(1,1) = a(1,1) + epsilon*(b1w(1) + b1w(2) + b1w(3))
 
     ! Update bottom corner
-    if (nid(2) > 0) a(n1me,1) = a(n1me,1) + epsilon*(b1(n1me+2)+b1(n1me+1)+b1(n1me))
+    if (nid(2) > 0) a(n1me,1) = a(n1me,1) + epsilon*(b1w(n1me+2)+b1w(n1me+1)+b1w(n1me))
 
   end subroutine update_W_edge
 
@@ -216,9 +228,9 @@ contains
   subroutine update_E_edge()
     ! Update interior points
     a(2:n1me-1,n2me) = b(2:n1me-1,n2me) + epsilon*( &
-         + b3(2:n1me-1)              & ! right-up
-         + b3(3:n1me)                & ! right
-         + b3(4:n1me+1)              & ! right-down
+         + b3e(2:n1me-1)             & ! right-up
+         + b3e(3:n1me)               & ! right
+         + b3e(4:n1me+1)             & ! right-down
          + b(1:n1me-2,n2me)          & ! up
          - b(2:n1me-1,n2me)*dble(8.) & ! yourself
          + b(3:n1me,  n2me)          & ! down
@@ -228,10 +240,10 @@ contains
          )
 
     ! Update top corner
-    if (nid(4) > 0) a(1,n2me) = a(1,n2me) + epsilon*(b3(1) + b3(2) + b3(3))
+    if (nid(4) > 0) a(1,n2me) = a(1,n2me) + epsilon*(b3e(1) + b3e(2) + b3e(3))
 
     ! Update bottom corner
-    if (nid(2) > 0) a(n1me,n2me) = a(n1me,n2me) + epsilon*(b3(n1me+2)+b3(n1me+1)+b3(n1me))
+    if (nid(2) > 0) a(n1me,n2me) = a(n1me,n2me) + epsilon*(b3e(n1me+2)+b3e(n1me+1)+b3e(n1me))
 
   end subroutine update_E_edge
 
@@ -276,14 +288,15 @@ contains
     allocate(x(n1me))
     allocate(y(n2me))
 
-    allocate(b1a(n1me+2))  ! +2 is for ghost cells for the 'corners'
-    allocate(b1b(n1me+2))  ! +2 is for ghost cells for the 'corners'
-    allocate(b2a(n2me))
-    allocate(b2b(n2me))
-    allocate(b3a(n1me+2))  ! +2 is for ghost cells for the 'corners'
-    allocate(b3b(n1me+2))  ! +2 is for ghost cells for the 'corners'
-    allocate(b4a(n2me))
-    allocate(b4b(n2me))
+    allocate(b1w (n1me+2))  ! +2 is for ghost cells for the 'corners'
+    allocate(b2s (n2me))
+    allocate(b3e (n1me+2))  ! +2 is for ghost cells for the 'corners'
+
+    allocate(b4n(n2me))
+    allocate(b1me(n1me+2))  ! +2 is for ghost cells for the 'corners'
+    allocate(b2me(n2me))
+    allocate(b3me(n1me+2))  ! +2 is for ghost cells for the 'corners'
+    allocate(b4me(n2me))
 
 
     allocate( top(np2))
@@ -293,7 +306,7 @@ contains
 
 
   subroutine deallocate_arrays()
-    deallocate(a,b,x,y,b1a,b2a,b3a,b4a,b1b,b2b,b3b,b4b)
+    deallocate(a,b,x,y,b1me,b2me,b3me,b4me,b1w,b2s,b3e,b4n)
   end subroutine deallocate_arrays
 
 
