@@ -40,6 +40,11 @@ program main
   call get_total_norm()
   if (my_id == 1) print *, "norm(a) = ", norm
 
+  if (my_id == 1) print *, my_id, a(n1me,n2me)
+  if (my_id == 2) print *, my_id, a(1,n2me)
+  if (my_id == 3) print *, my_id, a(n1me,1)
+  if (my_id == 4) print *, my_id, a(1,1)
+
   call deallocate_arrays()
   call mpi_finalize(ierr)
 

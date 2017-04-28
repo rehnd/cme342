@@ -1,7 +1,7 @@
 program main
   implicit none
 
-  integer, parameter   :: n1 = 1024, n2 = 1024, niter = 100
+  integer, parameter   :: n1 = 1024, n2 = 1024, niter = 1
   integer              :: i, j, n
   real(8), parameter   :: epsilon = 0.1
   real(8), allocatable :: a(:,:), b(:,:)
@@ -44,7 +44,11 @@ program main
   end do
 
   print *, "norm(a) = ", sqrt(sum(a**2))
-
+  print *, 1,a(512,512)
+  print *, 2,a(513,512)
+  print *, 3,a(512,513)
+  print *, 4,a(513,513)
+  
   deallocate(a,b,x,y)
 
 end program main
