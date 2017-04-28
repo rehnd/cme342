@@ -57,10 +57,10 @@ contains
 
     ! Send and receive N to S (nid(4) = N, nid(2) = S)
     if (any(top == my_id) .and. nid(2) > 0) then
+
        b2 = b(n1me,:)
        call mpi_send(b2, n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b2s,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,status, ierr)
-
        call update_S_edge()
 
     elseif (nid(4) > 0 .and. nid(2) > 0) then
@@ -69,7 +69,6 @@ contains
        call mpi_recv(b4n,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
        call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
        call update_N_edge()
-
        
        b2 = b(n1me,:)
        call mpi_send(b2, n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world, ierr)
@@ -77,6 +76,7 @@ contains
        call update_S_edge()
 
     elseif (nid(4) > 0) then
+
        b4 = b(1,:)   ! Do not overwrite b4 until *after* updating N edge
        call mpi_recv(b4n,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, status, ierr)
        call mpi_send(b4,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world, ierr)
@@ -98,13 +98,13 @@ contains
        call mpi_send(b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
        call update_W_edge()
 
-       
        b3(2:n1me+1) = b(:,n2me)
        call mpi_send(b3, n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world, ierr)
        call mpi_recv(b3e,n1me+2,mpi_double_precision,nid(3)-1,tag,mpi_comm_world,status,ierr)
        call update_E_edge()
 
     elseif (nid(1) > 0) then
+
        b1(2:n1me+1)  = b(:,1)
        call mpi_recv(b1w,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, status, ierr)
        call mpi_send(b1, n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world, ierr)
@@ -125,25 +125,25 @@ contains
          + b4n(2:n2me-1)           & ! above
          + b4n(1:n2me-2)           & ! above-left
          + b4n(3:n2me)             & ! above-right
-         + b(1,1:n2me-2)          & ! left
-         - b(1,2:n2me-1)*dble(8.) & ! yourself 
-         + b(1,3:n2me)            & ! right
-         + b(2,1:n2me-2)          & ! below-left
-         + b(2,2:n2me-1)          & ! below
-         + b(2,3:n2me)            & ! below-right
+         + b(1,1:n2me-2)           & ! left
+         - b(1,2:n2me-1)*dble(8.)  & ! yourself 
+         + b(1,3:n2me)             & ! right
+         + b(2,1:n2me-2)           & ! below-left
+         + b(2,2:n2me-1)           & ! below
+         + b(2,3:n2me)             & ! below-right
          )
 
     ! Treat node corners as special case
     if (nid(1) > 0) then
        a(1,1) = b(1,1) + epsilon*(      &
-            + b4n(1) + b4n(2)             & ! up, up-right
+            + b4n(1) + b4n(2)           & ! up, up-right
             + b(1,2) - dble(8.)*b(1,1)  & ! yourself, right
             + b(2,1) + b(2,2) )           ! below, below-right
     end if
 
     if (nid(3) > 0) then
        a(1,n2me) = b(1,n2me) + epsilon*(      &
-            + b4n(n2me-1) + b4n(n2me)           & ! up, up-left
+            + b4n(n2me-1) + b4n(n2me)         & ! up, up-left
             + b(1,n2me-1) -dble(8.)*b(1,n2me) & ! yourself, left
             + b(2,n2me-1) + b(2,n2me))          ! below, below-left
     end if
@@ -158,9 +158,9 @@ contains
 
     ! Perform a complete update of the interior edge elements |_|x|x|...|x|x|_|
     a(n1me,2:n2me-1) = b(n1me,2:n2me-1) + epsilon*( & 
-         + b2s(2:n2me-1)                             & ! below
-         + b2s(1:n2me-2)                             & ! below-left
-         + b2s(3:n2me)                               & ! below-right
+         + b2s(2:n2me-1)                            & ! below
+         + b2s(1:n2me-2)                            & ! below-left
+         + b2s(3:n2me)                              & ! below-right
          + b(n1me,1:n2me-2)                         & ! left
          - b(n1me,2:n2me-1)*dble(8.)                & ! yourself
          + b(n1me,3:n2me)                           & ! right
@@ -190,9 +190,9 @@ contains
   subroutine update_W_edge()
     ! Update interior points
     a(2:n1me-1,1) = b(2:n1me-1,1) + epsilon*( &
-         + b1w(2:n1me-1)              & ! left-up
-         + b1w(3:n1me)                & ! left
-         + b1w(4:n1me+1)              & ! left-down
+         + b1w(2:n1me-1)             & ! left-up
+         + b1w(3:n1me)               & ! left
+         + b1w(4:n1me+1)             & ! left-down
          + b(1:n1me-2,1)             & ! up
          - b(2:n1me-1,1)*dble(8.)    & ! yourself
          + b(3:n1me,  1)             & ! down
@@ -213,9 +213,9 @@ contains
   subroutine update_E_edge()
     ! Update interior points
     a(2:n1me-1,n2me) = b(2:n1me-1,n2me) + epsilon*( &
-         + b3e(2:n1me-1)              & ! right-up
-         + b3e(3:n1me)                & ! right
-         + b3e(4:n1me+1)              & ! right-down
+         + b3e(2:n1me-1)             & ! right-up
+         + b3e(3:n1me)               & ! right
+         + b3e(4:n1me+1)             & ! right-down
          + b(1:n1me-2,n2me)          & ! up
          - b(2:n1me-1,n2me)*dble(8.) & ! yourself
          + b(3:n1me,  n2me)          & ! down
