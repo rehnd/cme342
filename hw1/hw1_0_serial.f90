@@ -1,11 +1,13 @@
 program main
   implicit none
 
-  integer, parameter   :: n1 = 1024, n2 = 1024, niter = 1
+  integer              :: n1 = 1024, n2 = 1024, niter = 1, np1, np2
   integer              :: i, j, n
   real(8), parameter   :: epsilon = 0.1
   real(8), allocatable :: a(:,:), b(:,:)
   real(8), allocatable :: x(:)  , y(:)
+
+  call read_input()
 
   allocate(a(n1,n2))
   allocate(b(n1,n2))
@@ -44,11 +46,47 @@ program main
   end do
 
   print *, "norm(a) = ", sqrt(sum(a**2))
-  print *, 1,a(512,512)
-  print *, 2,a(513,512)
-  print *, 3,a(512,513)
-  print *, 4,a(513,513)
+  ! print *, 1,a(512,512)
+  ! print *, 2,a(513,512)
+  ! print *, 3,a(512,513)
+  ! print *, 4,a(513,513)
   
   deallocate(a,b,x,y)
+
+contains
+
+  subroutine read_input()
+    character(20)  :: filename
+    character(20)  :: arg
+    integer :: i
+    namelist /input_parameters/ n1, n2, np1, np2, niter
+
+    np1 = 1
+    np2 = 1
+    ! Reset these for serial case
+
+    if (iargc() == 0) then
+       print *,"Error: Please specify a file name"
+       print *, "Usage: "
+       print *, "    ./serial -i FILENAME"
+       stop
+    else 
+       do i=1,iargc()
+          call getarg(i,arg)
+          if (arg == '-i') then
+             call getarg(i+1,filename)
+             exit
+          else
+             filename = arg
+          end if
+
+       end do
+    end if    
+    
+    open( unit=222, file=filename)
+    read( unit=222, nml = input_parameters)
+    close(unit=222)
+
+  end subroutine read_input
 
 end program main
