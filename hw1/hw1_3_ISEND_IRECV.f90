@@ -7,7 +7,7 @@ program main
   integer                       :: my_id, np, ierr, status, send_reqst, recv_reqst
   integer                       :: i, j, n
   integer                       :: i_f, i_l, j_f, j_l ! i_first, i_last, j_first, j_last
-  double precision              :: norm
+  double precision              :: norm, start, endt
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:),b(:,:),b1(:),b2(:),b3(:),b4(:)
   double precision, allocatable :: b1w(:),b2s(:),b3e(:),b4n(:)
@@ -24,6 +24,10 @@ program main
   call read_input()
   call check_num_processes()
 
+  ! Start timer
+  call mpi_barrier(mpi_comm_world,ierr)
+  if (my_id == 1) call cpu_time(start)
+
   ! Set up arrays on each processor, get the indices this process will work on
   call allocate_arrays()
   call get_my_ij()
@@ -32,15 +36,19 @@ program main
 
   ! Main loop. Inside, update the interior & edge points on each processor
   do n = 1, niter
-     call update_edges()
-     call update_interior()
+     call update_edges_interior()
      b=a
   end do
   
   ! Compute the norm as a quick means of testing correctness
   call mpi_barrier(mpi_comm_world,ierr)
+  if (my_id == 1) call cpu_time(endt)
   call get_total_norm()
-  if (my_id == 1) print *, "norm(a) = ", norm
+
+  if (my_id == 1)then
+     print *, "norm(a) = ", norm
+     print *, "Wall time = ", (endt - start)
+  end if
 
   call deallocate_arrays()
   call mpi_finalize(ierr)
@@ -49,7 +57,7 @@ program main
 contains
 
 
-  subroutine update_edges()
+  subroutine update_edges_interior()
     integer  :: ip, jp, p, tag=2001
     integer  :: cid         ! current id
     integer  :: cid_nid(4)  ! current id's neighbors
@@ -60,6 +68,7 @@ contains
        b2 = b(n1me,:)
        call mpi_isend(b2, n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,send_reqst,ierr)
        call mpi_irecv(b2s,n2me,mpi_double_precision,nid(2)-1,tag,mpi_comm_world,recv_reqst,ierr)
+       call update_interior()
        call mpi_wait(recv_reqst,status,ierr)
        call update_S_edge()
        call mpi_wait(send_reqst,status,ierr)
@@ -69,6 +78,7 @@ contains
        b4 = b(1,:)   ! Do not overwrite b4 until *after* updating N edge
        call mpi_irecv(b4n,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world,recv_reqst,ierr)
        call mpi_isend(b4, n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world,send_reqst,ierr)
+       call update_interior()
        call mpi_wait(recv_reqst,status,ierr)
        call update_N_edge()
        call mpi_wait(send_reqst,status,ierr)
@@ -80,16 +90,20 @@ contains
        call update_S_edge()
        call mpi_wait(send_reqst,status,ierr)
 
-
     elseif (nid(4) > 0) then
 
        b4 = b(1,:)   ! Do not overwrite b4 until *after* updating N edge
        call mpi_irecv(b4n,n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world,recv_reqst,ierr)
        call mpi_isend(b4, n2me,mpi_double_precision,nid(4)-1,tag,mpi_comm_world,send_reqst,ierr)
+       call update_interior()
        call mpi_wait(recv_reqst,status,ierr)
        call update_N_edge()
        call mpi_wait(send_reqst,status,ierr)
+
+    else
+       call update_interior() ! catches case of using 1 node only
     end if
+
 
     ! Send and receive W to E (nid(1) = W, nid(3) = E)
     if (any(left == my_id) .and. nid(3) > 0) then
@@ -102,6 +116,7 @@ contains
        call mpi_wait(send_reqst,status,ierr)
 
     elseif (nid(1) > 0 .and. nid(3) > 0) then
+
        b1(2:n1me+1) = b(:,1)
        call mpi_irecv(b1w,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world,recv_reqst,ierr)
        call mpi_isend( b1,n1me+2,mpi_double_precision,nid(1)-1,tag,mpi_comm_world,send_reqst,ierr)
@@ -127,7 +142,7 @@ contains
 
     end if
 
-  end subroutine update_edges
+  end subroutine update_edges_interior
 
   
   subroutine update_N_edge()
@@ -300,7 +315,6 @@ contains
 
     allocate( top(np2))
     allocate(left(np1))
-
   end subroutine allocate_arrays
 
 
@@ -446,7 +460,6 @@ contains
           else
              filename = arg
           end if
-
        end do
     end if    
     

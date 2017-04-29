@@ -7,7 +7,7 @@ program main
   integer                       :: my_id, np, ierr, status
   integer                       :: i, j, n
   integer                       :: i_f, i_l, j_f, j_l ! i_first, i_last, j_first, j_last
-  double precision              :: norm
+  double precision              :: norm, start, endt
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:),b(:,:),b1(:),b2(:),b3(:),b4(:)
   double precision, allocatable :: b1w(:),b2s(:),b3e(:),b4n(:)
@@ -24,6 +24,10 @@ program main
   call read_input()
   call check_num_processes()
 
+  ! Start timer
+  call mpi_barrier(mpi_comm_world,ierr)
+  if (my_id == 1) call cpu_time(start)
+  
   ! Set up arrays on each processor, get the indices this process will work on
   call allocate_arrays()
   call get_my_ij()
@@ -40,8 +44,13 @@ program main
   
   ! Compute the norm as a quick means of testing correctness
   call mpi_barrier(mpi_comm_world,ierr)
+  if (my_id == 1) call cpu_time(endt)
   call get_total_norm()
-  if (my_id == 1) print *, "norm(a) = ", norm
+
+  if (my_id == 1)then
+     print *, "norm(a) = ", norm
+     print *, "Wall time = ", (endt - start)
+  end if
 
   call deallocate_arrays()
   call mpi_finalize(ierr)
