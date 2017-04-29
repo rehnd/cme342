@@ -25,3 +25,22 @@ To run executables by themselves, the syntax is as follows (for serial, i, ii, a
     $ mpirun -np X ./hw1_iii -i input.nml
 
 where X is the number of processors to run with. If X is not equal to `np1*np2`, an error results at runtime.
+
+_______________________________________________________
+
+### Results
+Below are plots of the runtime performance for `1,2,4,8,16` processors for `n1 = n2 = 1024` and `niter = 100` for each of the three problems:
+
+  - i:  MPI_Send and MPI_Recv
+  - ii: MPI_Sendrecv
+  - ii: MPI_ISend and MPI_IRecv
+
+#### Total Walltime
+![total runtime](pics/wall_time.png)
+#### Speedup
+![total runtime](pics/speedup.png)
+#### Efficiency
+![total runtime](pics/efficiency.png)
+
+#### Discussion
+As can be seen, the larger number of processors are faster than the 1 or 2 processors. It appears that there is an overhead when moving from 1 to 2 processors, likely due to communication costs. Since we only run on 16 cores, we do not see the expected falling-off of the efficiency and speedup. If we were to go to 32 or 64 cores, we would most likely see this fall-off. Additionally, the problem size is relatively small, so the advantage of computing on 2 cores over 1 core should not be expected to be great, since the computational time is likely small compared to the cost of communication. It would be interesting to see how it scales for `n1`, `n2` much larger. The Isend and Irecv could be much faster if we increase the problem size.
