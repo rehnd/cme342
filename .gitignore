@@ -1,3 +1,7 @@
+tmpdir
+times.dat
+MPI*out
+MPI*err
 test
 serial
 hw1_i
