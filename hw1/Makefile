@@ -16,8 +16,8 @@ i: hw1_1_SEND_RECV.f90
 ii: hw1_2_SENDRECV.f90
 	mpif90 -o hw1_ii hw1_2_SENDRECV.f90
 
-iii: hw1_3_ISEND_IRECV.f09
-	mpif90 -o hw1_iii hw1_3_ISEND_IRECV.f09
+iii: hw1_3_ISEND_IRECV.f90
+	mpif90 -o hw1_iii hw1_3_ISEND_IRECV.f90
 
 clean:
 	rm serial hw1_i hw1_ii hw1_iii
