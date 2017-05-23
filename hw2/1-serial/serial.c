@@ -4,24 +4,12 @@
 #include "metis.h"
 
 int main(idx_t argc, char* argv[]) {
-  idx_t nparts = 1;
-  idx_t nn;
-  idx_t ne;
-  idx_t edgecut;
-  idx_t *eind;
-  idx_t *eptr;
-  idx_t  count = 0;
-  idx_t ncommon = 1;
-  idx_t *epart;
-  idx_t *npart;
-  bool testing = 0;
-  char *connFileName;
-  char *nodeFileName;
-  FILE *connFile;
-  FILE *nodeFile;
-  char *line = NULL;
+  idx_t  nn, ne, edgecut, nparts = 1, count = 0, ncommon = 1;
+  idx_t  *eind, *eptr, *epart, *npart;
+  char   *connFileName, *nodeFileName, *line = NULL;
+  FILE   *connFile,  *nodeFile;
   size_t len = 0;
-  int i, j;
+  int    i, j, testing = 0;
 
   /* ----------------------------------READ FILES FROM COMMANDLINE -----------------------------*/
   // Get command line arguments
@@ -33,7 +21,7 @@ int main(idx_t argc, char* argv[]) {
     connFileName = argv[2];
     nodeFileName = argv[3];
   }
-  if (argc == 5) testing = argv[4];
+  if (argc == 5) testing = atoi(argv[4]);
 
   // Read in number of nodes
   nodeFile = fopen(nodeFileName, "r");
@@ -71,7 +59,9 @@ int main(idx_t argc, char* argv[]) {
   npart = (idx_t *)malloc(sizeof(idx_t)*nn);
 
   // Call METIS routine
-  METIS_PartMeshDual(&ne, &nn, eptr, eind, NULL, NULL, &ncommon, &nparts, NULL, NULL, &edgecut, epart, npart );
+  METIS_PartMeshDual(&ne, &nn, eptr, eind,
+		     NULL, NULL, &ncommon, &nparts,
+		     NULL, NULL, &edgecut, epart, npart );
 
   printf("Computed edgecut = %d\n", edgecut);
 
