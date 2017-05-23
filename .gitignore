@@ -4,6 +4,7 @@ MPI*out
 MPI*err
 test
 serial
+parallel
 hw1_i
 hw1_ii
 hw1_iii
