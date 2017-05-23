@@ -12,12 +12,12 @@
 
 DIR      = /home/rehnd/metis-5.1.0
 filename = serial
-CXX      = icpc
+CXX      = g++ # icpc
 MPICC    = mpicxx
 NPROC    = 1
 
 main:
-	${CXX} ${filename}.c -o ${filename} -std=c++11 -Wall -O3 -I ${DIR}/include/ \
+	${CXX} ${filename}.c -o ${filename} -std=c++11 -Wall -g -gdwarf-4 -I ${DIR}/include/ \
 	 -L ${DIR}/build/Linux-x86_64/libmetis/ -lmetis	
 
 
