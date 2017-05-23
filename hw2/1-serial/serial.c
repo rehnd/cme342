@@ -3,26 +3,28 @@
 #include <string.h>
 #include "metis.h"
 
-//void readfiles(idx_t argc, char* argv[], idx_t &nn, idx_t &ne, idx_t &nparts, idx_t *eptr, idx_t *eind);
-
 int main(idx_t argc, char* argv[]) {
   idx_t nparts = 1;
   idx_t nn;
   idx_t ne;
-  idx_t objval;
-
+  idx_t edgecut;
+  idx_t *eind;
+  idx_t *eptr;
+  idx_t  count = 0;
+  idx_t ncommon = 1;
+  idx_t *epart;
+  idx_t *npart;
   bool testing = 0;
-  
-  /* ----------------------------------------------------------------------------------------*/
-  // Read in files from commandline
-  //readfiles(argc, argv, nn, ne, nparts, eptr, eind);
   char *connFileName;
   char *nodeFileName;
   FILE *connFile;
   FILE *nodeFile;
   char *line = NULL;
   size_t len = 0;
+  int i, j;
 
+  /* ----------------------------------READ FILES FROM COMMANDLINE -----------------------------*/
+  // Get command line arguments
   if (argc < 4) {
     printf("Usage:\n\t./<exe-name> n ../meshes/<connfile>.conn ../meshes/<nodefile>.xyz \n");
     exit(1);
@@ -31,142 +33,50 @@ int main(idx_t argc, char* argv[]) {
     connFileName = argv[2];
     nodeFileName = argv[3];
   }
-  if (argc == 5) {
-    testing = argv[4];
-  }
+  if (argc == 5) testing = argv[4];
 
-  // Get the number of nodes
+  // Read in number of nodes
   nodeFile = fopen(nodeFileName, "r");
   getline(&line, &len, nodeFile);
   nn = atol(line);
-  printf("Found # Nodes = %d\n", nn);
+  printf("Found # Nodes    = %d\n", nn);
   fclose(nodeFile);
   
-  // Get number of elements
+  // Read in number of elements
   connFile = fopen(connFileName, "r");
   fscanf(connFile, "%d", &ne);
   printf("Found # elements = %d\n", ne);
- 
-  idx_t *eind = (idx_t *)malloc(sizeof(idx_t)*(ne+1));
-  idx_t *eptr = (idx_t *)malloc(sizeof(idx_t)*ne*4);
-  /* idx_t eind[ne+1]; */
-  /* idx_t eptr[ne*4]; */
-  
-  int i, j;
-  idx_t count = 0;
+
+  // Allocate eind and eptr arrays
+  eind = (idx_t *)malloc(sizeof(idx_t)*(ne*4));
+  eptr = (idx_t *)malloc(sizeof(idx_t)*ne +1);
+
+  // Loop over values in file and fill arrays
   for (i = 0; i < ne; i++) {
     for (j = 0; j < 4; j++) {
-      fscanf(connFile, "%d", &eptr[i*4 + j]);
-      if (testing) printf("%d ", eptr[i*4+j]);
+      fscanf(connFile, "%d", &eind[i*4 + j]);
+      if (testing) printf("%d ", eind[i*4+j]);
     }
-    eind[i] = count;
+    eptr[i] = count;
     if (testing) printf("    %d\n", eind[i]);
     count += 4;
   }
-  eind[i] = count; // Fill last value of eind
-  
+  eptr[i] = count; // Fill last value of eind
 
-  /* =============== TESTING ================ */
-  if (testing) {
-    printf("eptr array\n");
-    for (i = 0; i < ne*4; i++) {
-      printf("%d ", eptr[i ]);
-    }
-    printf("\n");
-    printf("eind array\n");
-    for (i = 0; i < ne + 1; i++) {
-      printf("%d ", eind[i]);
-    }
-    printf("\n");
-  }
-  /* =============== END TESTING ================ */
-  
   fclose(connFile);
-  /* DONE READING FILES */
-  /* ----------------------------------------------------------------------------------------*/
+  /* ----------------------------- END READING FILES ----------------------------------------*/
 
-  idx_t *epart = (idx_t *)malloc(sizeof(idx_t)*ne);
-  idx_t *npart = (idx_t *)malloc(sizeof(idx_t)*nn);
-  /* idx_t epart[ne]; */
-  /* idx_t npart[nn]; */
+  // Allocate epart and npart arrays based on ne, nn
+  epart = (idx_t *)malloc(sizeof(idx_t)*ne);
+  npart = (idx_t *)malloc(sizeof(idx_t)*nn);
 
-  int options[METIS_NOPTIONS];
-  METIS_SetDefaultOptions(options);
-  //METIS_PartMeshNodal(&ne, &nn, eptr, eind, NULL, NULL, &nparts, NULL, NULL, &objval, epart, npart );
-  idx_t ncommon = 1;
-  METIS_PartMeshDual(&ne, &nn, eptr, eind, NULL, NULL, &ncommon, &nparts, NULL, options, &objval, epart, npart );
-  printf("objval=%d", objval);
+  // Call METIS routine
+  METIS_PartMeshDual(&ne, &nn, eptr, eind, NULL, NULL, &ncommon, &nparts, NULL, NULL, &edgecut, epart, npart );
 
-  free(eptr);
-  free(eind);
-  free(epart);
-  free(npart);
+  printf("Computed edgecut = %d\n", edgecut);
+
+  free(eptr);  free(eind);  free(epart);  free(npart);
 
   return 0;
 
 }
-
-
-
-/* void readfiles(idx_t argc, char* argv[], idx_t &nn, idx_t &ne, idx_t &nparts, idx_t *eptr, idx_t *eind) { */
-/*   /\*  */
-/*      Takes the commandline arguments for mesh files and # of */
-/*      partitions, reads in the # nodes and fills eptr and eind */
-/*      according to the input files. */
-/*   *\/ */
-/*   char *connFileName; */
-/*   char *nodeFileName; */
-/*   FILE *connFile; */
-/*   FILE *nodeFile; */
-/*   char *line = NULL; */
-/*   size_t len = 0; */
-
-/*   if (argc != 4) { */
-/*     printf("Usage:\n\t./<exe-name> n connFileName nodeFileName \n"); */
-/*     exit(1); */
-/*   } else { */
-/*     nparts = atol(argv[1]); */
-/*     connFileName = argv[2]; */
-/*     nodeFileName = argv[3]; */
-/*   } */
-
-/*   // Get the number of nodes */
-/*   nodeFile = fopen(nodeFileName, "r"); */
-/*   getline(&line, &len, nodeFile); */
-/*   nn = atol(line); */
-/*   printf("Found # Nodes = %d\n", nn); */
-/*   fclose(nodeFile); */
-  
-/*   // Get number of elements */
-/*   connFile = fopen(connFileName, "r"); */
-/*   fscanf(connFile, "%d", &ne); */
-/*   printf("Found # elements = %d\n", ne); */
-  
-/*   eind = (idx_t *)malloc(sizeof(idx_t)*(ne+1)); */
-/*   eptr = (idx_t *)malloc(sizeof(idx_t)*ne*4); */
-
-/*   int i, j; */
-/*   idx_t count = 0; */
-/*   for (i = 0; i < ne; i++) { */
-/*     for (j = 0; j < 4; j++) { */
-/*       fscanf(connFile, "%d", &eptr[i*4 + j]); */
-/*       //printf("%d ", eptr[i*4+j]); */
-/*     } */
-/*     eind[i] = count; */
-/*     //printf("    %d\n", eind[i]); */
-/*     count += 4; */
-/*   } */
-/*   eind[i] = count; // Fill last value of eind */
-
-/*   /\* for (i = ne*4 - 10; i < ne*4; i++) { *\/ */
-/*   /\*   printf("%d ", eptr[i ]); *\/ */
-/*   /\* } *\/ */
-/*   /\* printf("\n"); *\/ */
-/*   for (i = 0; i < 4; i++) { */
-/*     printf("%d ", eind[i]); */
-/*   } */
-/*   printf("\n"); */
-
-/*   fclose(connFile); */
-
-/* } */
