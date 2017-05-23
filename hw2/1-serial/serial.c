@@ -3,18 +3,24 @@
 #include <string.h>
 #include "metis.h"
 
-void readfiles(int argc, char* argv[], int &nn, int &ne, int &npart, int *eptr, int *eind);
+void readfiles(int argc, char* argv[], int &nn, int &ne, int &nparts, int *eptr, int *eind);
 
 int main(int argc, char* argv[]) {
-  int npart;
+  int nparts;
   int nn;
   int ne;
   int *eptr;
   int *eind;
+  int objval;
+  int *epart;
+  int *npart;
 
-  readfiles(argc, argv, nn, ne, npart, eptr, eind);
+  readfiles(argc, argv, nn, ne, nparts, eptr, eind);
 
-  
+  epart = (int *)malloc(sizeof(int)*ne);
+  npart = (int *)malloc(sizeof(int)*nn);
+
+  METIS_PartMeshNodal(&ne, &nn, eptr, eind, NULL, NULL, &nparts, NULL, NULL, &objval, epart, npart );
 
   return 0;
 
@@ -22,7 +28,7 @@ int main(int argc, char* argv[]) {
 
 
 
-void readfiles(int argc, char* argv[], int &nn, int &ne, int &npart, int *eptr, int *eind) {
+void readfiles(int argc, char* argv[], int &nn, int &ne, int &nparts, int *eptr, int *eind) {
   /* 
      Takes the commandline arguments for mesh files and # of
      partitions, reads in the # nodes and fills eptr and eind
@@ -39,7 +45,7 @@ void readfiles(int argc, char* argv[], int &nn, int &ne, int &npart, int *eptr, 
     printf("Usage:\n\t./<exe-name> n connFileName nodeFileName \n");
     exit(1);
   } else {
-    npart = atoi(argv[1]);
+    nparts = atoi(argv[1]);
     connFileName = argv[2];
     nodeFileName = argv[3];
   }
