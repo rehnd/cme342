@@ -18,7 +18,8 @@ int main(idx_t argc, char* argv[]) {
   int np, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &np);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  nparts = np;
+  MPI_Comm mpi_comm = MPI_COMM_WORLD;
+  nparts = (idx_t)np;
 
   /* ----------------------------------READ FILES FROM COMMANDLINE -----------------------------*/
   // Get command line arguments
@@ -43,45 +44,52 @@ int main(idx_t argc, char* argv[]) {
   fscanf(connFile, "%ld", &ne);
   if (rank == 0) printf("Found # elements = %ld\n", ne);
 
-  elmdist = (idx_t *)malloc(sizeof(idx_t)*(np+1));
-  idx_t nepartition = ne/np;
-  idx_t neleftover  = ne%np;
+  elmdist = (idx_t *)malloc(sizeof(idx_t)*(nparts+1));
+  idx_t nepartition = ne/nparts;
+  idx_t neleftover  = ne%nparts;
   /* if (rank == 0) printf("ne partition = %ld\n", nepartition); */
   /* if (rank == 0) printf("ne left over = %ld\n", neleftover); */
   for (i = 0; i < np; i++) {
     elmdist[i] = nepartition*i;
   }
-  elmdist[np] = nepartition*np + neleftover; // fill the last value of elmdist
+  elmdist[nparts] = nepartition*nparts + neleftover; // fill the last value of elmdist
   int neloc = nepartition;
-  if (rank == np - 1) neloc += neleftover;
+  if (rank == nparts - 1) neloc += neleftover; // Give the last node the remainder of elements
 
   //printf("My rank = %d, neloc = %d\n", rank, neloc);
 
-  if (rank == 0) {
-  printf("\n");
-    for (i=0; i < np + 1; i++){
-      printf("%ld ", elmdist[i]);
-    }
-  printf("\n");
-  }
+  /* if (rank == 0) { */
+  /*   for (i=0; i < nparts + 1; i++){ */
+  /*     printf("%ld ", elmdist[i]); */
+  /*   } */
+  /*   printf("\n"); */
+  /* } */
 
 
   /* // Allocate eind and eptr arrays */
   eind = (idx_t *)malloc(sizeof(idx_t)*(neloc*4));
   eptr = (idx_t *)malloc(sizeof(idx_t)*neloc +1);
 
+  idx_t tmpval;
   // Loop over values in file and fill arrays
   int k = 0;
   for (i = 0; i < ne; i++) {
-    if (i >= elmdist[rank] && i < elmdist[rank+1]) {
+    //printf("\nrank %d, elmdist[rank]= %ld, i=%d\n", rank, elmdist[rank], i);
       for (j = 0; j < 4; j++) {
-	fscanf(connFile, "%ld", &eind[k*4 + j]);
+	fscanf(connFile, "%ld", &tmpval); //&eind[k*4 + j]);
+	if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
+	  eind[k*4 + j] = tmpval;
+	  //if (rank == 1) printf("%ld ", eind[k*4+j]);
+	}
       }
-      eptr[k] = count;
-      count += 4;
-      k += 1;
-    }
+      if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
+	eptr[k] = count;
+	
+	count += 4;
+	k += 1;
+      }
   }
+
   eptr[neloc] = count; // Fill last value of eind */
 
   for (j = 0; j < np; j++) {
@@ -90,33 +98,39 @@ int main(idx_t argc, char* argv[]) {
     if(rank == j)   printf("eptr array:\n");
     if (rank == j) for (i=0;i<neloc+1;i++) printf("%ld ",eptr[i]);
     if (rank == j) printf("\n");
-    if (rank == j) printf("eloc array:\n");
+    if (rank == j) printf("eind array:\n");
     if (rank == j) for (i=0; i < neloc*4; i++) printf("%ld ", eind[i]);
     if (rank == j) printf("\n");
   }
-  /* fclose(connFile); */
-  /* /\* ----------------------------- END READING FILES ----------------------------------------*\/ */
 
-  /* // Allocate epart and npart arrays based on ne, nn */
-  /* epart = (idx_t *)malloc(sizeof(idx_t)*ne); */
-  /* npart = (idx_t *)malloc(sizeof(idx_t)*nn); */
 
-  /* int ParMETIS V3 PartMeshKway ( idx_t *elmdist, idx_t *eptr, idx_t *eind, */
-  /* 				 idx_t *elmwgt, idx_t *wgtflag, idx_t *numflag, */
-  /* 				 idx_t *ncon, idx_t *ncommonnodes, idx_t *nparts, */
-  /* 				 real_t *tpwgts, real_t *ubvec, */
-  /* 				 idx_t *options, idx_t *edgecut, idx_t *part, MPI_Comm *comm ) */
-    
-  /* // Call METIS routine */
-  /* METIS_PartMeshDual(&ne, &nn, eptr, eind, */
-  /* 		     NULL, NULL, &ncommon, &nparts, */
-  /* 		     NULL, NULL, &edgecut, epart, npart ); */
+  idx_t wgtflag = 0;
+  idx_t numflag = 0;
+  idx_t ncon    = 1;
+  idx_t ncommonnodes = 3; // Could be 2 ?
+  real_t *tpwgts  = (real_t *)malloc(sizeof(real_t)*ncon*nparts);
+  real_t *ubvec   = (real_t *)malloc(sizeof(real_t)*ncon);
+  idx_t  *options = (idx_t  *)malloc(sizeof(idx_t));
+  idx_t  *part    = (idx_t  *)malloc(sizeof(idx_t) *4*neloc);
 
-  /* printf("Computed edgecut = %d\n", edgecut); */
+  
+  options[0] = 0;
+  ubvec[0] = (real_t) 1.05;
+  for (i=0; i<(int)ncon*nparts; i++) tpwgts[i] = (real_t)1.0/(real_t)nparts;
+  
+  int ret = ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
+				     &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
+				     tpwgts, ubvec, options, &edgecut, part, &mpi_comm);
 
-  /* free(eptr);  free(eind);  free(epart);  free(npart); */
+  
+  if(rank == 0) printf("Computed edgecut = %ld\n", edgecut);
 
-  //free(elmdist);
+  printf("\n\n");
+  if (rank == 0) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
+  //if (rank == 1) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
+  printf("\n");
+  free(eptr);  free(eind);  free(elmdist);
+
   MPI_Finalize();
 
   return 0;

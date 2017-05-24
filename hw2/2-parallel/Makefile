@@ -15,10 +15,12 @@ filename = parallel
 CXX      = icpc
 MPICC    = mpicxx
 NPROC    = 1
+LINKPARMETIS  = ${DIR}/build/Linux-x86_64/libparmetis
+LINKMETIS  = ${DIR}/build/Linux-x86_64/libmetis
 
 main:
-	${MPICC} ${filename}.c -o ${filename} -std=c++11 -Wall -g -gdwarf-4 -I ${DIR}/include/ \
-	 -L ${DIR}/build/Linux-x86_64/libmetis/ -lmetis
+	${MPICC} ${filename}.c -o ${filename} -std=c++11 -Wall -Wextra -g -gdwarf-4 -I ${DIR}/include/ \
+	 -L ${LINKPARMETIS} -lparmetis -L ${LINKMETIS} -lmetis
 
 
 clean:
