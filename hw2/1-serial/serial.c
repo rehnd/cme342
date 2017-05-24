@@ -66,8 +66,8 @@ int main(int argc, char* argv[]) {
   clock_t end = clock();
   double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 
-  printf("edgecut = %d\n", edgecut);
-  printf("time    = %f\n", time_spent);
+  printf("%s edgecut = %d\n", &argv[2][10], edgecut);
+  printf("%s time    = %f\n", &argv[2][10], time_spent);
 
   free(eptr);  free(eind);  free(epart);  free(npart);
 
