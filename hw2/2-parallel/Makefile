@@ -1,27 +1,30 @@
-# The following is a Makefile which demonstrates how to link against Metis; I
-# found documentation online very misleading and unhelpful, and had to ask
-# Julien how to get the damn thing working.
-
-# The following makes the assumption that you have installed Metis to the
-# directory DIR; you can change this argument for your particular installation
-
-# If you're not a fan of Makefiles (why wouldn't you be?), you can just pattern
-# match the arcane symbology in the main: call below
-
-# Cheers -- ZDR
-
-DIR      = /home/rehnd/parmetis-4.0.3
 filename = parallel
-CXX      = icpc
-MPICC    = mpicxx
-NPROC    = 1
-LINKPARMETIS  = ${DIR}/build/Linux-x86_64/libparmetis
-LINKMETIS  = ${DIR}/build/Linux-x86_64/libmetis
+
+OS := $(shell uname)
+ifeq ($(OS),Darwin)
+  CC        = gcc
+  MPICC     = mpicc
+  DIR       = /Users/rehnd/Desktop/metis
+  IMETIS    = ${DIR}/metis-5.1.0/include
+  IPMETIS   = ${DIR}/parmetis-4.0.3/include
+  LMETIS    = ${DIR}/metis-5.1.0/build/Darwin-x86_64/libmetis
+  LPMETIS   = ${DIR}/parmetis-4.0.3/build/Darwin-x86_64/libparmetis
+else # assume OS == Linux
+  CXX      = icpc
+  MPICC    = mpicxx
+  DIR      = /home/rehnd
+  IMETIS   = ${DIR}/metis-5.1.0/include
+  IPMETIS  = ${DIR}/parmetis-4.0.3/include
+  LMETIS   = ${DIR}/metis-5.1.0/build/Linux-x86_64/libmetis
+  LPMETIS  = ${DIR}/parmetis-4.0.3/build/Linux-x86_64/libparmetis
+endif
 
 main:
-	${MPICC} ${filename}.c -o ${filename} -std=c++11 -Wall -Wextra -g -gdwarf-4 -I ${DIR}/include/ \
-	 -L ${LINKPARMETIS} -lparmetis -L ${LINKMETIS} -lmetis
-
+	${MPICC} ${filename}.c -o ${filename} -Wall -Wextra -g -gdwarf-4 \
+	 -I ${IMETIS} \
+	 -I ${IPMETIS} \
+	 -L ${LMETIS} -lmetis \
+	 -L ${LPMETIS} -lparmetis
 
 clean:
 	rm -f ${filename}.c~

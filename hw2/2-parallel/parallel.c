@@ -5,8 +5,8 @@
 #include "parmetis.h"
 
 int main(idx_t argc, char* argv[]) {
-  idx_t  nn, ne, edgecut, nparts = 1, count = 0, ncommon = 1;
-  idx_t  *eind, *eptr, *epart, *npart;
+  idx_t  nn, ne, edgecut, nparts = 1, count = 0;
+  idx_t  *eind, *eptr;
   char   *connFileName, *nodeFileName, *line = NULL;
   FILE   *connFile,  *nodeFile;
   size_t len = 0;
@@ -35,13 +35,13 @@ int main(idx_t argc, char* argv[]) {
   nodeFile = fopen(nodeFileName, "r");
   getline(&line, &len, nodeFile);
   nn = atol(line);
-  if (rank == 0) printf("Found # Nodes    = %ld\n", nn);
+  if (rank == 0) printf("Found # Nodes    = %d\n", nn);
   fclose(nodeFile);
   
   // Read in number of elements
   connFile = fopen(connFileName, "r");
-  fscanf(connFile, "%ld", &ne);
-  if (rank == 0) printf("Found # elements = %ld\n", ne);
+  fscanf(connFile, "%d", &ne);
+  if (rank == 0) printf("Found # elements = %d\n", ne);
 
   elmdist = (idx_t *)malloc(sizeof(idx_t)*(nparts+1));
   idx_t nepartition = ne/nparts;
@@ -55,13 +55,13 @@ int main(idx_t argc, char* argv[]) {
   idx_t neloc = nepartition;
   if (rank == nparts - 1) neloc += neleftover; // Give the last node the remainder of elements
 
-  //printf("My rank = %d, neloc = %ld\n", rank, neloc);
+  //printf("My rank = %d, neloc = %d\n", rank, neloc);
 
   if (testing == 1){
     if (rank == 0) {
       printf("elmdist array:\n");
       for (i=0; i < nparts + 1; i++){
-	printf("%ld ", elmdist[i]);
+	printf("%d ", elmdist[i]);
       }
       printf("\n");
     }
@@ -75,12 +75,12 @@ int main(idx_t argc, char* argv[]) {
   int k = 0;
   idx_t tmpval;
   for (i = 0; i < ne; i++) {
-    //printf("\nrank %d, elmdist[rank]= %ld, i=%d\n", rank, elmdist[rank], i);
+    //printf("\nrank %d, elmdist[rank]= %d, i=%d\n", rank, elmdist[rank], i);
     for (j = 0; j < 4; j++) {
-      fscanf(connFile, "%ld", &tmpval);
+      fscanf(connFile, "%d", &tmpval);
       if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
 	eind[k*4 + j] = tmpval;
-	//if (rank == 1) printf("%ld ", eind[k*4+j]);
+	//if (rank == 1) printf("%d ", eind[k*4+j]);
       }
     }
     if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
@@ -96,12 +96,12 @@ int main(idx_t argc, char* argv[]) {
   if (testing == 1) {
     for (j = 0; j < np; j++) {
       if(rank == j) printf("\nRank %d\n",j);
-      if(rank == j)   printf("N elements = %ld\n", neloc);
+      if(rank == j)   printf("N elements = %d\n", neloc);
       if(rank == j)   printf("eptr array:\n");
-      if (rank == j) for (i=0;i<neloc+1;i++) printf("%ld ",eptr[i]);
+      if (rank == j) for (i=0;i<neloc+1;i++) printf("%d ",eptr[i]);
       if (rank == j) printf("\n");
       if (rank == j) printf("eind array:\n");
-      if (rank == j) for (i=0; i < neloc*4; i++) printf("%ld ", eind[i]);
+      if (rank == j) for (i=0; i < neloc*4; i++) printf("%d ", eind[i]);
       if (rank == j) printf("\n");
     }
   }
@@ -120,17 +120,17 @@ int main(idx_t argc, char* argv[]) {
   ubvec[0] = (real_t) 1.05;
   for (i=0; i<(int)ncon*nparts; i++) tpwgts[i] = (real_t)1.0/(real_t)nparts;
   
-  int ret = ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
-				     &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
-				     tpwgts, ubvec, options, &edgecut, part, &mpi_comm);
-
+  ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
+			   &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
+			   tpwgts, ubvec, options, &edgecut, part, &mpi_comm);
   
-  if(rank == 0) printf("Computed edgecut = %ld\n", edgecut);
+  
+  if(rank == 0) printf("Computed edgecut = %d\n", edgecut);
 
   if (testing == 1) {
     printf("\n");
-    if (rank == 0) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
-    if (rank == 1) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
+    if (rank == 0) for (i=0;i<4*neloc;i++) printf("%d ", part[i]);
+    if (rank == 1) for (i=0;i<4*neloc;i++) printf("%d ", part[i]);
     printf("\n");
   }
 

@@ -1,25 +1,24 @@
-# The following is a Makefile which demonstrates how to link against Metis; I
-# found documentation online very misleading and unhelpful, and had to ask
-# Julien how to get the damn thing working.
+OS := $(shell uname)
 
-# The following makes the assumption that you have installed Metis to the
-# directory DIR; you can change this argument for your particular installation
-
-# If you're not a fan of Makefiles (why wouldn't you be?), you can just pattern
-# match the arcane symbology in the main: call below
-
-# Cheers -- ZDR
-
-DIR      = /home/rehnd/metis-5.1.0
 filename = serial
-CXX      = g++ # icpc
-MPICC    = mpicxx
-NPROC    = 1
+FLAGS = -Wall -g -gdwarf-4
+
+ifeq ($(OS), Darwin)
+  CC     = gcc
+  MPICC  = mpicc
+  IMETIS = /Users/rehnd/Desktop/metis/metis-5.1.0/include
+  LMETIS = /Users/rehnd/Desktop/metis/metis-5.1.0/build/Darwin-x86_64/libmetis
+else
+  CC       = g++ # icpc
+  MPICC    = mpicxx
+  IMETIS   = /home/rehnd/metis-5.1.0/include
+  LMETIS   = /home/rehnd/metis-5.1.0/build/Linux-x86_64/libmetis
+endif
 
 main:
-	${CXX} ${filename}.c -o ${filename} -std=c++11 -Wall -g -gdwarf-4 -I ${DIR}/include/ \
-	 -L ${DIR}/build/Linux-x86_64/libmetis/ -lmetis	
-
+	${CC} ${filename}.c -o ${filename} ${FLAGS} \
+	  -I ${IMETIS} \
+	  -L ${LMETIS} -lmetis
 
 clean:
 	rm -f ${filename}.c~
