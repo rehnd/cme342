@@ -55,3 +55,20 @@ $ mpirun -np 2 ./parallel 2 ../meshes/oneram6.conn ../meshes/oneram6.xyz
 ```
 
 where we have run on 2 processors.
+
+
+## Results
+
+### Serial runtimes
+
+Below is a plot of the total run time vs number of partitions for a serial algorithm
+
+![](./pics/serial-times.png)
+
+### Serial edgecuts (i.e., communication cost)
+
+This plot shows the communication cost for a given number of
+partitions. The communication cost is determined by the so-called
+edgecut of the graph.
+
+![](./pics/serial-edgecuts.png)
