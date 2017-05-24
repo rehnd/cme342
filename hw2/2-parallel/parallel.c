@@ -4,7 +4,7 @@
 #include <mpi.h>
 #include "parmetis.h"
 
-int main(idx_t argc, char* argv[]) {
+int main(int argc, char* argv[]) {
   idx_t  nn, ne, edgecut, nparts = 1, count = 0;
   idx_t  *eind, *eptr;
   char   *connFileName, *nodeFileName, *line = NULL;
@@ -118,7 +118,7 @@ int main(idx_t argc, char* argv[]) {
   
   options[0] = 0;
   ubvec[0] = (real_t) 1.05;
-  for (i=0; i<(int)ncon*nparts; i++) tpwgts[i] = (real_t)1.0/(real_t)nparts;
+  for (i=0; i<(int)ncon*nparts; i++) tpwgts[i] = (real_t)(1.0/nparts);
   
   ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
 			   &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
