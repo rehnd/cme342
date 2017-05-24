@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "metis.h"
 
 int main(int argc, char* argv[]) {
@@ -27,13 +28,11 @@ int main(int argc, char* argv[]) {
   nodeFile = fopen(nodeFileName, "r");
   getline(&line, &len, nodeFile);
   nn = atol(line);
-  printf("Found # Nodes    = %d\n", nn);
   fclose(nodeFile);
   
   // Read in number of elements
   connFile = fopen(connFileName, "r");
   fscanf(connFile, "%d", &ne);
-  printf("Found # elements = %d\n", ne);
 
   // Allocate eind and eptr arrays
   eind = (idx_t *)malloc(sizeof(idx_t)*(ne*4));
@@ -59,11 +58,16 @@ int main(int argc, char* argv[]) {
   npart = (idx_t *)malloc(sizeof(idx_t)*nn);
 
   // Call METIS routine
+  clock_t begin = clock();
   METIS_PartMeshDual(&ne, &nn, eptr, eind,
 		     NULL, NULL, &ncommon, &nparts,
 		     NULL, NULL, &edgecut, epart, npart );
 
-  printf("Computed edgecut = %d\n", edgecut);
+  clock_t end = clock();
+  double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+
+  printf("edgecut = %d\n", edgecut);
+  printf("time    = %f\n", time_spent);
 
   free(eptr);  free(eind);  free(epart);  free(npart);
 

@@ -11,8 +11,8 @@ ifeq ($(OS), Darwin)
 else
   CC       = g++ # icpc
   MPICC    = mpicxx
-  IMETIS   = /home/rehnd/metis-5.1.0/include
-  LMETIS   = /home/rehnd/metis-5.1.0/build/Linux-x86_64/libmetis
+  IMETIS   = /home/users/rehnd/metis-5.1.0/include
+  LMETIS   = /home/users/rehnd/metis-5.1.0/build/Linux-x86_64/libmetis
 endif
 
 main:
