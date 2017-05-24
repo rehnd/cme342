@@ -121,8 +121,9 @@ int main(int argc, char* argv[]) {
   ubvec[0] = (real_t) 1.05;
   for (i=0; i < ncon*nparts; i++) tpwgts[i] = 1.0/nparts;
 
-  if (rank == 0) for (i=0; i<ncon*nparts; i++) printf("%f ", tpwgts[i]);
-  
+  /* if (rank == 0) for (i=0; i<ncon*nparts; i++) printf("%f ", tpwgts[i]); */
+  /* if (rank == 0) printf("\n");   */
+
   clock_t begin = clock();
   ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
 			   &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
@@ -134,6 +135,7 @@ int main(int argc, char* argv[]) {
   if (rank == 0) printf("%s time = %f\n", &argv[2][10],time_spent);
   if (rank == 0) printf("%s edgecut = %d\n", &argv[2][10], edgecut);
 
+  
   if (testing == 1) {
     printf("\n");
     if (rank == 0) for (i=0;i<4*neloc;i++) printf("%d ", part[i]);

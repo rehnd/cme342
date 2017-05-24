@@ -3,17 +3,16 @@ OS := $(shell uname)
 filename = parallel
 FLAGS = -Wall -Wextra -g -gdwarf-4 -lm
 
+CC        = gcc
+MPICC     = mpicc
+
 ifeq ($(OS),Darwin)
-  CC        = gcc
-  MPICC     = mpicc
   DIR       = /Users/rehnd/Desktop/metis
   IMETIS    = ${DIR}/metis-5.1.0/include
   IPMETIS   = ${DIR}/parmetis-4.0.3/include
   LMETIS    = ${DIR}/metis-5.1.0/build/Darwin-x86_64/libmetis
   LPMETIS   = ${DIR}/parmetis-4.0.3/build/Darwin-x86_64/libparmetis
 else # assume OS == Linux
-  CC       = gcc 
-  MPICC    = mpicc
   DIR      = /home/users/rehnd
   IMETIS   = ${DIR}/metis-5.1.0/include
   IPMETIS  = ${DIR}/parmetis-4.0.3/include
