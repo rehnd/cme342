@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <mpi.h>
 #include "parmetis.h"
 
@@ -35,13 +36,11 @@ int main(int argc, char* argv[]) {
   nodeFile = fopen(nodeFileName, "r");
   getline(&line, &len, nodeFile);
   nn = atol(line);
-  if (rank == 0) printf("Found # Nodes    = %d\n", nn);
   fclose(nodeFile);
   
   // Read in number of elements
   connFile = fopen(connFileName, "r");
   fscanf(connFile, "%d", &ne);
-  if (rank == 0) printf("Found # elements = %d\n", ne);
 
   elmdist = (idx_t *)malloc(sizeof(idx_t)*(nparts+1));
   idx_t nepartition = ne/nparts;
@@ -120,12 +119,16 @@ int main(int argc, char* argv[]) {
   ubvec[0] = (real_t) 1.05;
   for (i=0; i<(int)ncon*nparts; i++) tpwgts[i] = (real_t)(1.0/nparts);
   
+  clock_t begin = clock();
   ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
 			   &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
 			   tpwgts, ubvec, options, &edgecut, part, &mpi_comm);
   
+  clock_t end = clock();
+  double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
   
-  if(rank == 0) printf("Computed edgecut = %d\n", edgecut);
+  if (rank == 0) printf("%s time = %f\n", &argv[2][10],time_spent);
+  if (rank == 0) printf("%s edgecut = %d\n", &argv[2][10], edgecut);
 
   if (testing == 1) {
     printf("\n");
