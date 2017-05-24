@@ -4,10 +4,10 @@ filename = serial
 FLAGS = -Wall -g -gdwarf-4
 
 ifeq ($(OS), Darwin)
-  CC     = gcc
-  MPICC  = mpicc
-  IMETIS = /Users/rehnd/Desktop/metis/metis-5.1.0/include
-  LMETIS = /Users/rehnd/Desktop/metis/metis-5.1.0/build/Darwin-x86_64/libmetis
+  CC       = gcc
+  MPICC    = mpicc
+  IMETIS   = /Users/rehnd/Desktop/metis/metis-5.1.0/include
+  LMETIS   = /Users/rehnd/Desktop/metis/metis-5.1.0/build/Darwin-x86_64/libmetis
 else
   CC       = g++ # icpc
   MPICC    = mpicxx

@@ -1,6 +1,8 @@
-filename = parallel
-
 OS := $(shell uname)
+
+filename = parallel
+FLAGS = -Wall -Wextra -g -gdwarf-4 
+
 ifeq ($(OS),Darwin)
   CC        = gcc
   MPICC     = mpicc
@@ -10,8 +12,8 @@ ifeq ($(OS),Darwin)
   LMETIS    = ${DIR}/metis-5.1.0/build/Darwin-x86_64/libmetis
   LPMETIS   = ${DIR}/parmetis-4.0.3/build/Darwin-x86_64/libparmetis
 else # assume OS == Linux
-  CXX      = icpc
-  MPICC    = mpicxx
+  CC       = gcc 
+  MPICC    = mpicc
   DIR      = /home/rehnd
   IMETIS   = ${DIR}/metis-5.1.0/include
   IPMETIS  = ${DIR}/parmetis-4.0.3/include
@@ -20,11 +22,12 @@ else # assume OS == Linux
 endif
 
 main:
-	${MPICC} ${filename}.c -o ${filename} -Wall -Wextra -g -gdwarf-4 \
-	 -I ${IMETIS} \
+	${MPICC} ${filename}.c -o ${filename} ${FLAGS} \
 	 -I ${IPMETIS} \
-	 -L ${LMETIS} -lmetis \
-	 -L ${LPMETIS} -lparmetis
+	 -L ${LPMETIS} -lparmetis \
+	 -I ${IMETIS} \
+	 -L ${LMETIS} -lmetis 
+
 
 clean:
 	rm -f ${filename}.c~
