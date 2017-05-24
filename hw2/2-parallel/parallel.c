@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <time.h>
 #include <mpi.h>
 #include "parmetis.h"
@@ -36,6 +37,7 @@ int main(int argc, char* argv[]) {
   nodeFile = fopen(nodeFileName, "r");
   getline(&line, &len, nodeFile);
   nn = atol(line);
+  nn *= 1;
   fclose(nodeFile);
   
   // Read in number of elements
@@ -117,7 +119,9 @@ int main(int argc, char* argv[]) {
   
   options[0] = 0;
   ubvec[0] = (real_t) 1.05;
-  for (i=0; i<(int)ncon*nparts; i++) tpwgts[i] = (real_t)(1.0/nparts);
+  for (i=0; i < ncon*nparts; i++) tpwgts[i] = 1.0/nparts;
+
+  if (rank == 0) for (i=0; i<ncon*nparts; i++) printf("%f ", tpwgts[i]);
   
   clock_t begin = clock();
   ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
