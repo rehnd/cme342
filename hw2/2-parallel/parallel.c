@@ -21,7 +21,6 @@ int main(idx_t argc, char* argv[]) {
   MPI_Comm mpi_comm = MPI_COMM_WORLD;
   nparts = (idx_t)np;
 
-  /* ----------------------------------READ FILES FROM COMMANDLINE -----------------------------*/
   // Get command line arguments
   if (argc < 4) {
     if (rank == 0) printf("Usage:\n\t./<exe-name> n ../meshes/<connfile>.conn ../meshes/<nodefile>.xyz \n");
@@ -47,62 +46,65 @@ int main(idx_t argc, char* argv[]) {
   elmdist = (idx_t *)malloc(sizeof(idx_t)*(nparts+1));
   idx_t nepartition = ne/nparts;
   idx_t neleftover  = ne%nparts;
-  /* if (rank == 0) printf("ne partition = %ld\n", nepartition); */
-  /* if (rank == 0) printf("ne left over = %ld\n", neleftover); */
+
   for (i = 0; i < np; i++) {
     elmdist[i] = nepartition*i;
   }
   elmdist[nparts] = nepartition*nparts + neleftover; // fill the last value of elmdist
-  int neloc = nepartition;
+
+  idx_t neloc = nepartition;
   if (rank == nparts - 1) neloc += neleftover; // Give the last node the remainder of elements
 
-  //printf("My rank = %d, neloc = %d\n", rank, neloc);
+  //printf("My rank = %d, neloc = %ld\n", rank, neloc);
 
-  /* if (rank == 0) { */
-  /*   for (i=0; i < nparts + 1; i++){ */
-  /*     printf("%ld ", elmdist[i]); */
-  /*   } */
-  /*   printf("\n"); */
-  /* } */
+  if (testing == 1){
+    if (rank == 0) {
+      printf("elmdist array:\n");
+      for (i=0; i < nparts + 1; i++){
+	printf("%ld ", elmdist[i]);
+      }
+      printf("\n");
+    }
+  }
 
-
-  /* // Allocate eind and eptr arrays */
+  // Allocate eind and eptr arrays
   eind = (idx_t *)malloc(sizeof(idx_t)*(neloc*4));
   eptr = (idx_t *)malloc(sizeof(idx_t)*neloc +1);
 
-  idx_t tmpval;
   // Loop over values in file and fill arrays
   int k = 0;
+  idx_t tmpval;
   for (i = 0; i < ne; i++) {
     //printf("\nrank %d, elmdist[rank]= %ld, i=%d\n", rank, elmdist[rank], i);
-      for (j = 0; j < 4; j++) {
-	fscanf(connFile, "%ld", &tmpval); //&eind[k*4 + j]);
-	if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
-	  eind[k*4 + j] = tmpval;
-	  //if (rank == 1) printf("%ld ", eind[k*4+j]);
-	}
-      }
+    for (j = 0; j < 4; j++) {
+      fscanf(connFile, "%ld", &tmpval);
       if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
-	eptr[k] = count;
-	
-	count += 4;
-	k += 1;
+	eind[k*4 + j] = tmpval;
+	//if (rank == 1) printf("%ld ", eind[k*4+j]);
       }
+    }
+    if (i >= (int) elmdist[rank] && i < (int)elmdist[rank+1]) {
+      eptr[k] = count;
+      
+      count += 4;
+      k += 1;
+    }
   }
 
   eptr[neloc] = count; // Fill last value of eind */
 
-  for (j = 0; j < np; j++) {
-    if(rank == j) printf("\nRank %d\n",j);
-    if(rank == j)   printf("N elements = %d\n", neloc);
-    if(rank == j)   printf("eptr array:\n");
-    if (rank == j) for (i=0;i<neloc+1;i++) printf("%ld ",eptr[i]);
-    if (rank == j) printf("\n");
-    if (rank == j) printf("eind array:\n");
-    if (rank == j) for (i=0; i < neloc*4; i++) printf("%ld ", eind[i]);
-    if (rank == j) printf("\n");
+  if (testing == 1) {
+    for (j = 0; j < np; j++) {
+      if(rank == j) printf("\nRank %d\n",j);
+      if(rank == j)   printf("N elements = %ld\n", neloc);
+      if(rank == j)   printf("eptr array:\n");
+      if (rank == j) for (i=0;i<neloc+1;i++) printf("%ld ",eptr[i]);
+      if (rank == j) printf("\n");
+      if (rank == j) printf("eind array:\n");
+      if (rank == j) for (i=0; i < neloc*4; i++) printf("%ld ", eind[i]);
+      if (rank == j) printf("\n");
+    }
   }
-
 
   idx_t wgtflag = 0;
   idx_t numflag = 0;
@@ -125,11 +127,14 @@ int main(idx_t argc, char* argv[]) {
   
   if(rank == 0) printf("Computed edgecut = %ld\n", edgecut);
 
-  printf("\n\n");
-  if (rank == 0) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
-  //if (rank == 1) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
-  printf("\n");
-  free(eptr);  free(eind);  free(elmdist);
+  if (testing == 1) {
+    printf("\n");
+    if (rank == 0) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
+    if (rank == 1) for (i=0;i<4*neloc;i++) printf("%ld ", part[i]);
+    printf("\n");
+  }
+
+  free(elmdist);  free(eptr);  free(eind);  free(tpwgts); free(ubvec); free(options); free(part);
 
   MPI_Finalize();
 
