@@ -3,7 +3,7 @@
 #include <string.h>
 #include "metis.h"
 
-int main(idx_t argc, char* argv[]) {
+int main(int argc, char* argv[]) {
   idx_t  nn, ne, edgecut, nparts = 1, count = 0, ncommon = 1;
   idx_t  *eind, *eptr, *epart, *npart;
   char   *connFileName, *nodeFileName, *line = NULL;
