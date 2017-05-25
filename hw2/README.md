@@ -100,7 +100,7 @@ Coarray Fortran is built on MPI, but uses very simple syntax. In this
 sense, it is "higher-level" than writing directly in MPI, but the
 higher level in this case is usually _much_ better for
 performance. The reasons for this have to do with the fact tha Coarray
-Fortran uses single-sided communication (`MPI_puts` and `MPI_gets`)
+Fortran uses single-sided communication (`MPI_put` and `MPI_get`)
 under hood. It also uses MPI derived data types to send data between
 nodes. For example, if you plan to send data that is stored
 non-contiguously in increments, `caf` has a way of generating an MPI
