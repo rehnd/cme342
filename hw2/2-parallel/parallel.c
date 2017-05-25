@@ -124,13 +124,15 @@ int main(int argc, char* argv[]) {
   /* if (rank == 0) for (i=0; i<ncon*nparts; i++) printf("%f ", tpwgts[i]); */
   /* if (rank == 0) printf("\n");   */
 
-  clock_t begin = clock();
+  clock_t begin, end;
+  double time_spent;
+  if( rank == 0) begin = clock();
   ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, NULL,
 			   &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts,
 			   tpwgts, ubvec, options, &edgecut, part, &mpi_comm);
   
-  clock_t end = clock();
-  double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+  if (rank == 0) end = clock();
+  if (rank == 0) time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
   
   if (rank == 0) printf("%s time = %f\n", &argv[2][10],time_spent);
   if (rank == 0) printf("%s edgecut = %d\n", &argv[2][10], edgecut);

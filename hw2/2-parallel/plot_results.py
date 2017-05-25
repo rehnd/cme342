@@ -1,10 +1,10 @@
 from pylab import *
 import os
 
-rfile = 'metis.out'
+rfile = 'pmetis.out'
 
 filenames = ['oneram6', 'falcon', 'glidebak']
-np = array([2**n for n in range(1,8)])
+np = array([2**n for n in range(1,6)])
 
 if ('results' in os.listdir('.')):
     os.system("rm -rf results")
@@ -35,7 +35,7 @@ f = figure()
 plot(np, times[:,0])
 plot(np, times[:,1])
 plot(np, times[:,2])
-title('METIS_PartMeshDual Runtime')
+title('ParMETIS_V3_PartMeshKway Runtime')
 xlabel('Number of Partitions')
 ylabel('Time (sec)')
 grid()
@@ -47,9 +47,9 @@ f = figure()
 plot(np, edgecuts[:,0])
 plot(np, edgecuts[:,1])
 plot(np, edgecuts[:,2])
-title('METIS_PartMeshDual Edgecuts (comm cost)')
+title('METIS_V3_PartMeshKway Edgecuts (comm cost)')
 xlabel('Number of Partitions')
-ylabel('Time (sec)')
+ylabel('Number of Edgecuts')
 grid()
 legend(filenames)
 savefig('results/edgecuts.png',dpi=100)
