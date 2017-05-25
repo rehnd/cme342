@@ -2,7 +2,7 @@
 
 ## 0. Installation
 
-### Prerequisites -- METIS and PARMETIS
+### Prerequisites: METIS and PARMETIS
 First, install both the metis and parmetis libraries:
 
 ```bash
@@ -87,7 +87,7 @@ for up to 32 partitions.
 
 Below is a plot of the number of edgecuts vs number of processors.
 
-![](./pics/parallel-times.png)
+![](./pics/parallel-edgecuts.png)
 
 
 ## 3. Final Project Description
