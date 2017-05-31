@@ -10,10 +10,10 @@
 #SBATCH --ntasks-per-node=16
 
 echo "serial"
-time ./serial -i input.nml
+./serial -i input.nml
 
 echo "hw3_1"
-time ./hw3_1 -i input.nml
+./hw3_1 -i input.nml
 
 #echo "hw3_2"
 #time ./hw3_2 -i input.nml

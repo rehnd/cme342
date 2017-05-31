@@ -63,10 +63,9 @@ program main
   end do
 
   end = omp_get_wtime()
-  print *, "norm(a) = ", sqrt(sum(a**2))
-  print *, "time = ", end - start
+  print *, "norm(a)    = ", sqrt(sum(a**2))
   print *, "a(512,512) = ", a(512,512)
-
+  print *, "time       = ", end - start
   
   deallocate(a,b,x,y)
 
