@@ -1,0 +1,6 @@
+serial
+hw3_1
+hw3_2
+*.o
+*~
+openmp.*
