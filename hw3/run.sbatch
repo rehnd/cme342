@@ -9,11 +9,4 @@
 #SBATCH --mem=16000
 #SBATCH --ntasks-per-node=16
 
-echo "serial"
-./serial -i input.nml
-
-echo "hw3_1"
-./hw3_1 -i input.nml
-
-#echo "hw3_2"
-#time ./hw3_2 -i input.nml
+python run.py
