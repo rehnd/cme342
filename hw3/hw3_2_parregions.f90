@@ -6,7 +6,7 @@ program main
   integer                       :: nid(4)             ! neighbor id's
   integer                       :: i, j, n
   integer                       :: i_f, i_l, j_f, j_l, i_ff, i_ll, j_ff,j_ll
-  double precision              :: norm, start, endt
+  double precision              :: start, endt
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:),b(:,:)
 
@@ -22,47 +22,18 @@ program main
 
   start = omp_get_wtime()
 
-  !$omp parallel shared(a,b,x,y) private(i,j, i_f,i_l, j_f,j_l, i_ff,i_ll, j_ff,j_ll,my_id) 
+  !$omp parallel shared(a,b,x,y) private(i,j, i_f,i_l,j_f,j_l, i_ff,i_ll,j_ff,j_ll, my_id) 
   my_id = omp_get_thread_num() + 1
 
   call get_my_ij()
   call set_ij_interior()
-  !$OMP BARRIER
-  
-  !call initialize_arrays()
-  do i = i_f,i_l
-     x(i) = 1./dble(n1-1)*dble(i-1)
-  end do
 
-  do j = j_f, j_l
-     y(j) = 1./dble(n2-1)*dble(j-1)
-  end do
-
-  do j = j_f, j_l
-     do i = i_f, i_l
-        if (x(i) .lt. 0.5) then
-           a(i,j) = cos(x(i)+y(j))
-        else
-           a(i,j) = sin(x(i)+y(j))
-        end if
-        b(i,j) = a(i,j)
-     end do
-  end do
-  !$OMP BARRIER
+  call initialize_arrays()
+  !$omp barrier
 
   ! Main loop. Inside, update the interior & edge points on each processor
   do n = 1, niter
      call update_interior()
-     ! do j = j_ff, j_ll
-     !    do i = i_ff, i_ll
-     !       a(i,j) = b(i,j) + epsilon*(                        &
-     !           b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
-     !           b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
-     !           b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
-     !    end do
-     ! end do
-
-     !$omp barrier
      b(i_f:i_l, j_f:j_l) = a(i_f:i_l, j_f:j_l)
      !$omp barrier
   end do
@@ -70,18 +41,18 @@ program main
   !$omp end parallel
   endt = omp_get_wtime()
 
-  norm = sqrt(sum(a(:,:)**2))
-
-  print *, "norm(a)    = ", norm
+  print *, "norm(a)    = ", norm2(a)
   print *, "a(512,512) = ", a(512,512)
   print *, "time       = ", (endt - start)
 
   call deallocate_arrays()
 
+
 contains
 
+
   subroutine set_ij_interior()
-    logical :: printtest = .true.
+    logical :: printtest = .false.
     character(len=10)      :: fmt = '(5I)'
     i_ff = i_f
     i_ll = i_l
@@ -131,7 +102,7 @@ contains
   subroutine get_my_ij()
     integer                :: ip, jp
     character(len=10)      :: fmt = '(5I)'
-    logical                :: printtest = .true.
+    logical                :: printtest = .false.
 
     jp = (my_id-1)/np1 + 1
     ip =  my_id - (jp-1)*np1
