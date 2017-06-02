@@ -85,9 +85,9 @@ contains
     if (iargc() == 0) then
        print *,"Error: Please specify a file name"
        print *, "Usage: "
-       print *, "    ./serial -i FILENAME"
+       print *, "    ./hw3_1 -i FILENAME"
        stop
-    else 
+    else
        do i=1,iargc()
           call getarg(i,arg)
           if (arg == '-i') then
