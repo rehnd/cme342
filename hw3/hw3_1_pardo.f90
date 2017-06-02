@@ -5,7 +5,7 @@ program main
   integer              :: n1 = 1024, n2 = 1024, niter = 1, np1, np2
   integer              :: i, j, n
   integer              :: nthreads
-  real(8)              :: start, end
+  real(8)              :: start, endt
   real(8), parameter   :: epsilon = 0.1
   real(8), allocatable :: a(:,:), b(:,:)
   real(8), allocatable :: x(:)  , y(:)
@@ -22,8 +22,7 @@ program main
   nthreads =  omp_get_num_threads()
   !$OMP END PARALLEL
 
-  !start = omp_get_wtime()
-  call cpu_time(start)
+  start = omp_get_wtime()
   
   do i = 1, n1
      x(i) = 1./dble(n1-1)*dble(i-1)
@@ -61,11 +60,10 @@ program main
      b = a
   end do
 
-  call cpu_time(end)
-  !end program main= omp_get_wtime()
+  endt =   omp_get_wtime()
   print *, "norm(a)    = ", norm2(a)
   print *, "a(512,512) = ", a(512,512)
-  print *, "time       = ", end - start
+  print *, "time       = ", endt - start
   
   deallocate(a,b,x,y)
 

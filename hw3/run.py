@@ -51,7 +51,7 @@ def run_simulations(prob,nps,nsims_to_avg, printnorms):
 if __name__ == '__main__':
     # Set default parameters to get:
     printnorms = False # this option prints the norms to files, instead of times
-    nsims_to_avg = 12
+    nsims_to_avg = 100
     probs = ['1','2']
     nps = array([1,2,4,8,16])
 
