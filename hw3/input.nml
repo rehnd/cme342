@@ -1,8 +1,8 @@
 &input_parameters
-    n1    = 1024
-    n2    = 1024
-    np1   = 2
-    np2   = 2
-    nthreads = 8
+    n1    = 1024,
+    n2    = 1024,
+    np1   = 2,
+    np2   = 2,
+    nthreads = 4,
     niter = 100
 /
