@@ -29,14 +29,20 @@ closer to the ideal value.
 My code for this part is found in `hw3_2_parregions.f90`. We are asked
 to show results for 
 
-	p1, p2: (1,1), (1,2), (1,4), (1,8), (1,16), 
-	        (2,2), (2,4), (2,8), 
-			(4,1), (4,2), (4,3), (4,4)
+```bash
+    p1, p2: (1,1), (1,2), (1,4), (1,8), (1,16), 
+            (2,2), (2,4), (2,8), 
+            (4,1), (4,2), (4,3), (4,4)
+```
+
 
 These results are shown in the figure below.
 
 ![](pics/p2runtimes.png)
 
+Note that for any data points for which p1*p2 > 8, we should see an
+increase in runtime because only 8 cores are available on the computer
+I used.
 
 ## Problem 3
 The run times for hw3 and hw1 are shown below.  As can be seen, the
