@@ -20,7 +20,6 @@ program main
   call check_num_processes()
   call allocate_arrays()
 
-  !start = omp_get_wtime()
   call cpu_time(start)
 
   !$omp parallel shared(a,b,x,y) private(i,j, i_f,i_l,j_f,j_l, i_ff,i_ll,j_ff,j_ll, my_id) 
@@ -28,20 +27,22 @@ program main
 
   call get_my_ij()
   call set_ij_interior()
-
+  
   call initialize_arrays()
   !$omp barrier
 
   ! Main loop. Inside, update the interior & edge points on each processor
   do n = 1, niter
      call update_interior()
+     !$omp barrier
      b(i_f:i_l, j_f:j_l) = a(i_f:i_l, j_f:j_l)
      !$omp barrier
   end do
   
   !$omp end parallel
-  !  endt = omp_get_wtime()
+
   call cpu_time(end)
+
   print *, "norm(a)    = ", norm2(a)
   print *, "a(512,512) = ", a(512,512)
   print *, "time       = ", (end - start)
