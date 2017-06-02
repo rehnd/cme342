@@ -10,8 +10,8 @@ default:
 
 all: serial 1 2
 
-serial: hw3_serial.f90
-	$(FC) -o serial -$(OMPLIB) hw3_serial.f90
+serial: hw3_0_serial.f90
+	$(FC) -o serial -$(OMPLIB) hw3_0_serial.f90
 
 1: hw3_1_pardo.f90
 	$(FC) -o hw3_1 -$(OMPLIB) hw3_1_pardo.f90
@@ -20,4 +20,4 @@ serial: hw3_serial.f90
 	$(FC) -o hw3_2 -$(OMPLIB) hw3_2_parregions.f90
 
 clean:
-	rm serial hw3_1 *~ *.o
+	rm serial hw3_1 hw3_2 *~ *.o
