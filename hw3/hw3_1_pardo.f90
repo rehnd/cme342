@@ -22,9 +22,8 @@ program main
   nthreads =  omp_get_num_threads()
   !$OMP END PARALLEL
 
-  start = omp_get_wtime()
-
-  print *, "nthreads = ", nthreads
+  !start = omp_get_wtime()
+  call cpu_time(start)
   
   do i = 1, n1
      x(i) = 1./dble(n1-1)*dble(i-1)
@@ -62,8 +61,9 @@ program main
      b = a
   end do
 
-  end = omp_get_wtime()
-  print *, "norm(a)    = ", sqrt(sum(a**2))
+  call cpu_time(end)
+  !end program main= omp_get_wtime()
+  print *, "norm(a)    = ", norm2(a)
   print *, "a(512,512) = ", a(512,512)
   print *, "time       = ", end - start
   

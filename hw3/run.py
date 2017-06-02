@@ -42,7 +42,7 @@ def run_simulations(prob,nps,nsims_to_avg, printnorms):
 
 
             tmptime = genfromtxt(fname)
-            times[k,j] = average(tmptime)
+            times[k,j] = average(tmptime[1:-1])
             k += 1
         j += 1
 
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Set default parameters to get:
     printnorms = False # this option prints the norms to files, instead of times
     nsims_to_avg = 12
-    probs = ['1']
+    probs = ['1','2']
     nps = array([1,2,4,8,16])
 
     if 'times.dat' in os.listdir('.'):
@@ -65,33 +65,31 @@ if __name__ == '__main__':
 
 
 
-    # f = figure()
-    # plot(nps[:],times[0,:])
-    # plot(nps[:],times[1,:])
-    # plot(nps[:],times[2,:])
-    # legend(probs)
-    # xlabel('Number of processors')
-    # ylabel('Wall time (sec)')
-    # show()
+    f = figure()
+    plot(nps[:],times[0,:])
+    plot(nps[:],times[1,:])
+    legend(["Problem 1", "Problem 2"])
+    xlabel('Number of processors')
+    ylabel('Wall time (sec)')
+    title("Homework 3 wall times")
+    show()
 
-    # f = figure()
-    # plot(nps[:],times[0,0]/times[0,:])
-    # plot(nps[:],times[0,0]/times[1,:])
-    # plot(nps[:],times[0,0]/times[2,:])
-    # plot(nps[:],nps[:],'k--')
-    # legend(['i','ii','iii','ideal'], loc=2)
-    # xlabel('Number of processors')
-    # ylabel('Speedup')
-    # show()
+    f = figure()
+    plot(nps[:],times[0,0]/times[0,:])
+    plot(nps[:],times[0,0]/times[1,:])
+    plot(nps[:],nps[:],'k--')
+    legend(['Problem 1','Problem 2','ideal'], loc=2)
+    xlabel('Number of processors')
+    ylabel('Speedup')
+    show()
 
-    # f = figure()
-    # plot(nps[:],times[0,0]/times[0,:]/nps)
-    # plot(nps[:],times[1,0]/times[1,:]/nps)
-    # plot(nps[:],times[2,0]/times[2,:]/nps)
-    # plot(nps[:],ones(len(nps)),'k--')
-    # ylim(0,1.3)
-    # legend(probs, loc=4)
-    # xlabel('Number of processors')
-    # ylabel('Efficiency')
-    # show()
+    f = figure()
+    plot(nps[:],times[0,0]/times[0,:]/nps)
+    plot(nps[:],times[1,0]/times[1,:]/nps)
+    plot(nps[:],ones(len(nps)),'k--')
+    ylim(0,1.3)
+    legend(["Problem 1","Problem 2"], loc=4)
+    xlabel('Number of processors')
+    ylabel('Efficiency')
+    show()
     

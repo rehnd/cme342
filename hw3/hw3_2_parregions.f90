@@ -6,7 +6,7 @@ program main
   integer                       :: nid(4)             ! neighbor id's
   integer                       :: i, j, n
   integer                       :: i_f, i_l, j_f, j_l, i_ff, i_ll, j_ff,j_ll
-  double precision              :: start, endt
+  double precision              :: start, end
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:),b(:,:)
 
@@ -20,7 +20,8 @@ program main
   call check_num_processes()
   call allocate_arrays()
 
-  start = omp_get_wtime()
+  !start = omp_get_wtime()
+  call cpu_time(start)
 
   !$omp parallel shared(a,b,x,y) private(i,j, i_f,i_l,j_f,j_l, i_ff,i_ll,j_ff,j_ll, my_id) 
   my_id = omp_get_thread_num() + 1
@@ -39,11 +40,12 @@ program main
   end do
   
   !$omp end parallel
-  endt = omp_get_wtime()
-
+  !  endt = omp_get_wtime()
+  call cpu_time(end)
   print *, "norm(a)    = ", norm2(a)
   print *, "a(512,512) = ", a(512,512)
-  print *, "time       = ", (endt - start)
+  print *, "time       = ", (end - start)
+
 
   call deallocate_arrays()
 
