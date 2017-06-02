@@ -48,7 +48,7 @@ under the MPI version, I used another node to get 16 cores total.
 
 
 #### Homework 3 wall times
-![](./pics/hw3runtimes.png)
+![](./pics/hw3walltimes.png)
 
 #### Homework 1 wall times
 ![](../hw1/pics/wall_time.png)
