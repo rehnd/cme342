@@ -1,7 +1,7 @@
 &input_parameters
     n1    = 1024,
     n2    = 1024,
-    np1   = 1,
-    np2   = 1,
+    np1   = 2,
+    np2   = 2,
     niter = 1,
 /
