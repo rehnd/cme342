@@ -54,48 +54,26 @@ contains
 
   subroutine update_edges()
 
-    ! Send and receive N to S (nid(4) = N, nid(2) = S)
-    if (any(top == this_image()) .and. nid(2) > 0) then
-
-       b2 = b(1,:)[nid(2)] ! Get N edge of S processor, store in b2
+    ! Get N and S data
+    if (nid(2) > 0) then
+       b2 = b(1,:)[nid(2)] 
        call update_S_edge()
-
-    elseif (nid(4) > 0 .and. nid(2) > 0) then
-
+    end if
+    if (nid(4) > 0) then 
        b4 = b(n1me,:)[nid(4)]
        call update_N_edge()
-
-       b2 = b(1,:)[nid(2)]
-       call update_S_edge()
-
-    elseif (nid(4) > 0) then
-
-       b4 = b(n1me,:)[nid(4)]
-       call update_N_edge()       
-
     end if
 
     sync all
 
-    ! Send and receive W to E (nid(1) = W, nid(3) = E)
-    if (any(left == this_image()) .and. nid(3) > 0) then
-
+    ! Get W and E data
+    if (nid(3) > 0) then
        b3(2:n1me+1) = b(:,1)[nid(3)]
        call update_E_edge()
-       
-    elseif (nid(1) > 0 .and. nid(3) > 0) then
-
+    end if
+    if (nid(1) > 0) then
        b1(2:n1me+1) = b(:,n2me)[nid(1)]
        call update_W_edge()
-
-       b3(2:n1me+1) = b(:,1)[nid(3)]
-       call update_E_edge()
-
-    elseif (nid(1) > 0) then
-
-       b1(2:n1me+1) = b(:,n2me)[nid(1)]
-       call update_W_edge()
-
     end if
 
   end subroutine update_edges
