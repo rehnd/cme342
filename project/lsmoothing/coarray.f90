@@ -7,11 +7,12 @@ program main
   integer                       :: np, ierr, status
   integer                       :: i, j, n
   integer                       :: i_f, i_l, j_f, j_l ! i_first, i_last, j_first, j_last
-  double precision              :: norm, start, endt
+  real                          :: time
+  double precision              :: norm
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:)[:],b(:,:)[:],b1(:)[:],b2(:)[:],b3(:)[:],b4(:)[:]
   double precision, allocatable :: x(:)[:], y(:)[:]
-  integer,          allocatable :: top(:)[:], left(:)[:]    ! nodes at the top, left of processor grid
+  integer,          allocatable :: top(:)[:], left(:)[:] ! nodes at top & left of processor grid
 
   np = num_images()
 
@@ -21,7 +22,7 @@ program main
 
   ! Start timer
   sync all
-  if (this_image() == 1) call cpu_time(start)
+  if (this_image() == 1) time = secnds(0.0)
   
   ! Set up arrays on each processor, get the indices this process will work on
   call allocate_arrays()
@@ -38,12 +39,12 @@ program main
   end do
   
   ! Compute the norm as a quick means of testing correctness
-  if (this_image() == 1) call cpu_time(endt)
+  if (this_image() == 1) time = secnds(time)
   call get_total_norm()
 
   if (this_image() == 1) then
      print *, "norm(a)   = ", norm
-     print *, "Wall time = ", (endt - start)
+     write(*,"(A,F10.5,A)") " Wall time = ", time, " sec"
   end if
 
   call deallocate_arrays()
@@ -200,14 +201,14 @@ contains
   subroutine update_interior()
     integer :: i, j
 
-    do concurrent(j = 2: n2me-1)
-       do concurrent(i = 2:n1me-1)
+ 
+       do concurrent(j = 2:n2me-1,i = 2:n1me-1)
           a(i,j) = b(i,j) + epsilon*(                        &
                b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
                b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
                b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
        end do
-    end do
+ 
 
   end subroutine update_interior
 

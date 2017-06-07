@@ -1,6 +1,6 @@
 program main
   implicit none
-  real(8)              :: start, endt
+  real                 :: time
   integer              :: n1 = 1024, n2 = 1024, niter = 1, np1, np2
   integer              :: i, j, n
   real(8), parameter   :: epsilon = 0.1
@@ -9,7 +9,7 @@ program main
 
   call read_input()
 
-  if (this_image() == 1) call cpu_time(start)
+  if (this_image() == 1) time = secnds(0.)
 
   allocate(a(n1,n2))
   allocate(b(n1,n2))
@@ -47,9 +47,9 @@ program main
      b = a
   end do
 
-  if (this_image() == 1) call cpu_time(endt)
+  if (this_image() == 1) time = secnds(time)
   print *, "norm(a)   = ", norm2(a)
-  print *, "Wall time = ", (endt - start)
+  write(*,"(A,F10.5,A)") " Wall time = ", time, " sec"
   
   deallocate(a,b,x,y)
 
