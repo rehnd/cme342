@@ -22,7 +22,6 @@ program main
 
   ! Start timer
   sync all
-  if (this_image() == 1) time = secnds(0.0)
   
   ! Set up arrays on each processor, get the indices this process will work on
   call allocate_arrays()
@@ -32,6 +31,7 @@ program main
   sync all
   
   ! Main loop. Inside, update the interior & edge points on each processor
+  if (this_image() == 1) time = secnds(0.0)
   do n = 1, niter
      call update_edges()
      call update_interior()
@@ -202,13 +202,20 @@ contains
     integer :: i, j
 
  
-       do concurrent(j = 2:n2me-1,i = 2:n1me-1)
+    ! do concurrent(j = 2:n2me-1,i = 2:n1me-1)
+    !    a(i,j) = b(i,j) + epsilon*(                        &
+    !         b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
+    !         b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
+    !         b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
+    ! end do
+    do j = 2, n2me-1
+       do i = 2, n1me-1
           a(i,j) = b(i,j) + epsilon*(                        &
                b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
                b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
                b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
        end do
- 
+    end do
 
   end subroutine update_interior
 

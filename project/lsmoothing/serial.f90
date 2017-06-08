@@ -9,7 +9,7 @@ program main
 
   call read_input()
 
-  if (this_image() == 1) time = secnds(0.)
+
 
   allocate(a(n1,n2))
   allocate(b(n1,n2))
@@ -35,6 +35,7 @@ program main
      end do
   end do
 
+  if (this_image() == 1) time = secnds(0.)
   do n = 1, niter
      do j = 2, n2-1
         do i = 2, n1-1

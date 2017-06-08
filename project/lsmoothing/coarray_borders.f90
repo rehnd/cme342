@@ -16,7 +16,7 @@ program main
 
   ! Start timer
   sync all
-  if (this_image() == 1) time = secnds(0.0)
+
   
   ! Set up arrays on each processor, get the indices this process will work on
   call allocate_arrays()
@@ -27,6 +27,7 @@ program main
   sync all
   
   ! Main loop. Inside, update the interior & edge points on each processor
+  if (this_image() == 1) time = secnds(0.0)
   do n = 1, niter
      call send_edges()
      sync all
@@ -67,13 +68,21 @@ contains
   subroutine update_interior()
     integer :: i, j
 
-    do concurrent(j = jf_:jl_, i=if_:il_)
-       a(i,j) = b(i,j) + epsilon*(                        &
-            b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
-            b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
-            b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
+    ! do concurrent(j = jf_:jl_, i=if_:il_)
+    !    a(i,j) = b(i,j) + epsilon*(                        &
+    !         b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
+    !         b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
+    !         b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
+    ! end do
+    do j = jf_,jl_
+       do i=if_,il_
+          a(i,j) = b(i,j) + epsilon*(                        &
+               b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
+               b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
+               b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
+       end do
     end do
-
+    
   end subroutine update_interior
 
 
@@ -195,22 +204,39 @@ contains
   
   subroutine initialize_arrays()
 
-    do concurrent(i = 1:n1me)
+    ! do concurrent(i = 1:n1me)
+    !    x(i) = 1./dble(n1-1)*dble(i+i_f-2)
+    ! end do
+    
+    ! do concurrent(j=1:n2me)
+    !    y(j) = 1./dble(n2-1)*dble(j+j_f-2)
+    ! end do
+
+    ! do concurrent(j=1:n2me, i=1:n1me)
+    !    if (x(i) .lt. 0.5) then
+    !       a(i+1,j+1) = cos(x(i)+y(j))
+    !    else
+    !       a(i+1,j+1) = sin(x(i)+y(j))
+    !    end if
+    ! end do
+    do i = 1,n1me
        x(i) = 1./dble(n1-1)*dble(i+i_f-2)
     end do
     
-    do concurrent(j=1:n2me)
+    do j=1,n2me
        y(j) = 1./dble(n2-1)*dble(j+j_f-2)
     end do
 
-    do concurrent(j=1:n2me, i=1:n1me)
-       if (x(i) .lt. 0.5) then
-          a(i+1,j+1) = cos(x(i)+y(j))
-       else
-          a(i+1,j+1) = sin(x(i)+y(j))
-       end if
+    do j=1,n2me
+       do i=1,n1me
+          if (x(i) .lt. 0.5) then
+             a(i+1,j+1) = cos(x(i)+y(j))
+          else
+             a(i+1,j+1) = sin(x(i)+y(j))
+          end if
+       end do
     end do
-
+    
     b = a
 
   end subroutine initialize_arrays

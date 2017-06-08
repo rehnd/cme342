@@ -27,7 +27,7 @@ program main
 
   ! Start timer
   call mpi_barrier(mpi_comm_world,ierr)
-  if (my_id == 1) time = secnds(0.0)
+
   
   ! Set up arrays on each processor, get the indices this process will work on
   call allocate_arrays()
@@ -36,6 +36,7 @@ program main
   nid = get_neighbor_ids(my_id)
 
   ! Main loop. Inside, update the interior & edge points on each processor
+  if (my_id == 1) time = secnds(0.0)
   do n = 1, niter
      call update_edges()
      call update_interior()
