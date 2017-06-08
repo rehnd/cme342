@@ -2,19 +2,13 @@ program main
   implicit none
   integer                       :: n1 = 1024, n2 = 1024, np1=1, np2=1, niter = 1
   integer                       :: n1me, n2me
+  integer                       :: i, j, n, np
   integer                       :: nid(4)             ! neighbor id's
-  integer                       :: np, ierr, status
-  integer                       :: i, j, n
-  integer                       :: i_f, i_l, j_f, j_l ! i_first, i_last, j_first, j_last
-  integer                       :: if_, il_, jf_, jl_
+  integer                       :: i_f, i_l, j_f, j_l,  if_, il_, jf_, jl_
   real                          :: time
   double precision              :: norm
   double precision, parameter   :: epsilon = 0.1
-  double precision, allocatable :: a(:,:)[:],b(:,:)[:],b1(:)[:],b2(:)[:],b3(:)[:],b4(:)[:]
-  double precision, allocatable :: x(:)[:], y(:)[:]
-  integer,          allocatable :: top(:)[:], left(:)[:] ! nodes at top & left of processor grid
-
-  np = num_images()
+  double precision, allocatable :: a(:,:)[:], b(:,:)[:], x(:)[:], y(:)[:]
 
   ! Read input values and run tests
   call read_input()
@@ -40,8 +34,9 @@ program main
      b=a
   end do
   
-  ! Compute the norm as a quick means of testing correctness
   if (this_image() == 1) time = secnds(time)
+
+  ! Compute the norm as a quick means of testing correctness
   call get_total_norm()
 
   if (this_image() == 1) then
@@ -146,9 +141,9 @@ contains
   
 
   subroutine check_num_processes()
-    if ((.not. np1*np2  == np)) then
+    if ((.not. np1*np2  == num_images())) then
        if (this_image() == 1) print *, 'Error: Domain decomp (np1*np2) not equal to MPI_RANK'
-       stop
+       error stop
     end if
   end subroutine check_num_processes
 
