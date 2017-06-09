@@ -16,7 +16,7 @@ program main
   integer,          allocatable :: top(:), left(:)    ! nodes at the top, left of processor grid
 
   !  MPI Setup, get rank, size. Increment my_id by 1 for Fortran 1-based indexing
-  call mpi_init(ierr)
+!  call mpi_init(ierr)
   call mpi_comm_size(mpi_comm_world,    np, ierr)
   call mpi_comm_rank(mpi_comm_world, my_id, ierr)
   my_id = my_id + 1
@@ -53,7 +53,7 @@ program main
   end if
 
   call deallocate_arrays()
-  call mpi_finalize(ierr)
+!  call mpi_finalize(ierr)
 
 
 contains

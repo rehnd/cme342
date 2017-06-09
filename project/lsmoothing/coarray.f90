@@ -37,9 +37,11 @@ program main
      call update_interior()
      b=a
   end do
-  
-  ! Compute the norm as a quick means of testing correctness
+
+  sync all
   if (this_image() == 1) time = secnds(time)
+
+  ! Compute the norm as a quick means of testing correctness
   call get_total_norm()
 
   if (this_image() == 1) then
@@ -201,13 +203,7 @@ contains
   subroutine update_interior()
     integer :: i, j
 
- 
     ! do concurrent(j = 2:n2me-1,i = 2:n1me-1)
-    !    a(i,j) = b(i,j) + epsilon*(                        &
-    !         b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
-    !         b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
-    !         b(i-1,j-1) +          b(i,j-1) + b(i+1,j-1))
-    ! end do
     do j = 2, n2me-1
        do i = 2, n1me-1
           a(i,j) = b(i,j) + epsilon*(                        &

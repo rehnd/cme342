@@ -34,7 +34,7 @@ program main
      call update_interior()
      b=a
   end do
-  
+  sync all  
   if (this_image() == 1) time = secnds(time)
 
   ! Compute the norm as a quick means of testing correctness
