@@ -343,7 +343,7 @@ contains
   subroutine check_num_processes()
     if ((.not. np1*np2  == np)) then
        if (my_id == 1) print *, 'Error: Domain decomp (np1*np2) not equal to MPI_RANK'
-       stop('')
+       stop
     end if
   end subroutine check_num_processes
 
