@@ -36,6 +36,7 @@ program main
      call update_edges()
      call update_interior()
      b=a
+     sync all
   end do
 
   sync all
