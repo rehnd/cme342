@@ -44,50 +44,20 @@ def run_simulations(prob,nps,nsims_to_avg, printnorms):
 
     return times
 
+
 if __name__ == '__main__':
     # Set default parameters to get:
     printnorms = False # this option prints the norms to files, instead of times
     nsims_to_avg = 10
-    probs = ['hw1_i','hw1_ii','hw1_iii', 'coarray', 'border']
+    #probs = ['hw1_i','hw1_ii','hw1_iii', 'coarray', 'border']
+    probs = ['hw1_i', 'coarray', 'border']
     nps = array([1,2,4])
 
     if 'times.dat' in os.listdir('.'):
-        print "Found times.dat ; plotting from this file"
-        print "To rerun, delete times.dat before re-running"
+        print( "Found times.dat ; plotting from this file")
+        print( "To rerun, delete times.dat before re-running")
         times = genfromtxt('times.dat')
     else:
         times = run_simulations(probs,nps,nsims_to_avg,printnorms)
         savetxt('times.dat',times)
 
-
-
-    f = figure()
-    for i in range(len(probs)):
-        plot(nps[:],times[i,:])
-
-    legend(probs)
-    xlabel('Number of processors')
-    ylabel('Wall time (sec)')
-    show()
-
-    f = figure()
-    for i in range(len(probs)):
-        plot(nps[:],times[i,0]/times[i,:])
-
-    plot(nps[:],nps[:],'k--')
-    legend(probs + ['ideal'], loc=2)
-    xlabel('Number of processors')
-    ylabel('Speedup')
-    show()
-
-    f = figure()
-    for i in range(len(probs)):
-        plot(nps[:],times[i,0]/times[i,:]/nps)
-
-    plot(nps[:],ones(len(nps)),'k--')
-    ylim(0,1.3)
-    legend(probs+['ideal'], loc=4)
-    xlabel('Number of processors')
-    ylabel('Efficiency')
-    show()
-    
