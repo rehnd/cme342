@@ -9,7 +9,7 @@ default:
 all: serial coarray border i ii iii
 
 serial: serial.f90
-	caf -o serial $(FLAGS) serial.f90
+	gfortran -o serial $(FLAGS) serial.f90
 
 coarray: coarray.f90
 	caf -o coarray $(FLAGS) coarray.f90

@@ -9,8 +9,6 @@ program main
 
   call read_input()
 
-
-
   allocate(a(n1,n2))
   allocate(b(n1,n2))
   allocate(x(n1))
@@ -35,7 +33,7 @@ program main
      end do
   end do
 
-  if (this_image() == 1) time = secnds(0.)
+  time = secnds(0.)
   do n = 1, niter
      do j = 2, n2-1
         do i = 2, n1-1
@@ -48,7 +46,7 @@ program main
      b = a
   end do
 
-  if (this_image() == 1) time = secnds(time)
+  time = secnds(time)
   print *, "norm(a)   = ", norm2(a)
   write(*,"(A,F10.5,A)") " Wall time = ", time, " sec"
   
