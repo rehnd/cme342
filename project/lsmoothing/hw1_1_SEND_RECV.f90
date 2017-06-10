@@ -16,7 +16,7 @@ program main
   integer,          allocatable :: top(:), left(:)    ! nodes at the top, left of processor grid
 
   !  MPI Setup, get rank, size. Increment my_id by 1 for Fortran 1-based indexing
-  ! call mpi_init(ierr)
+  ! call mpi_init(ierr) ! Not needed if using the caf compiler
   call mpi_comm_size(mpi_comm_world,    np, ierr)
   call mpi_comm_rank(mpi_comm_world, my_id, ierr)
   my_id = my_id + 1
@@ -35,19 +35,19 @@ program main
   call initialize_arrays()
   nid = get_neighbor_ids(my_id)
 
-  ! Main loop. Inside, update the interior & edge points on each processor
   if (my_id == 1) time = secnds(0.0)
+
+  ! Main loop. Inside, update the interior & edge points on each processor
   do n = 1, niter
      call update_edges()
      call update_interior()
      b=a
   end do
 
-  
-  ! Compute the norm as a quick means of testing correctness
-  if (my_id == 1) time = secnds(time)
   call mpi_barrier(mpi_comm_world,ierr)
+  if (my_id == 1) time = secnds(time)
 
+  ! Compute the norm as a quick means of testing correctness
   call get_total_norm()
 
   if (my_id == 1)then
@@ -56,7 +56,7 @@ program main
   end if
 
   call deallocate_arrays()
-  ! call mpi_finalize(ierr)
+  ! call mpi_finalize(ierr) ! not needed if using the caf compiler
 
 
 contains

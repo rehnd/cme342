@@ -12,7 +12,6 @@ program main
   double precision, parameter   :: epsilon = 0.1
   double precision, allocatable :: a(:,:)[:],b(:,:)[:],b1(:)[:],b2(:)[:],b3(:)[:],b4(:)[:]
   double precision, allocatable :: x(:)[:], y(:)[:]
-  integer,          allocatable :: top(:)[:], left(:)[:] ! nodes at top & left of processor grid
 
   np = num_images()
 
@@ -204,9 +203,8 @@ contains
   subroutine update_interior()
     integer :: i, j
 
-    ! do concurrent(j = 2:n2me-1,i = 2:n1me-1)
-    do j = 2, n2me-1
-       do i = 2, n1me-1
+    do concurrent(j = 2: n2me-1)
+       do concurrent(i = 2:n1me-1)
           a(i,j) = b(i,j) + epsilon*(                        &
                b(i-1,j+1) +          b(i,j+1) + b(i+1,j+1) + &
                b(i-1,j  ) - dble(8.)*b(i,j  ) + b(i+1,j  ) + &
@@ -240,9 +238,6 @@ contains
     allocate(b2(n2me)[*])
     allocate(b3(n1me+2)[*])  ! +2 is for ghost cells for the 'corners'
     allocate(b4(n2me)[*])
-
-    allocate( top(np2)[*])
-    allocate(left(np1)[*])
 
   end subroutine allocate_arrays
 
@@ -332,16 +327,16 @@ contains
     logical           :: testvals = .false.
     character(len=20) :: fmt = "(1I,2F12.2)"
 
-    do i = 1, n1me
+    do concurrent (i = 1:n1me)
        x(i) = 1./dble(n1-1)*dble(i+i_f-2)
     end do
     
-    do j = 1, n2me
+    do concurrent (j = 1: n2me)
        y(j) = 1./dble(n2-1)*dble(j+j_f-2)
     end do
 
-    do j = 1, n2me
-       do i = 1, n1me
+    do concurrent (j = 1: n2me)
+       do concurrent (i = 1: n1me)
           if (x(i) .lt. 0.5) then
              a(i,j) = cos(x(i)+y(j))
           else
@@ -349,14 +344,6 @@ contains
           end if
           b(i,j) = a(i,j)
        end do
-    end do
-
-    do i=1,np2
-       top(i) = np1*(i-1)+1
-    end do
-
-    do i=1,np1
-       left(i) = i
     end do
 
     if (testvals) then
