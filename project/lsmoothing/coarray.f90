@@ -33,6 +33,7 @@ program main
   if (this_image() == 1) time = secnds(0.0)
   do n = 1, niter
      call update_edges()
+     sync all
      call update_interior()
      b=a
      sync all

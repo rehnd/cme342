@@ -24,17 +24,18 @@ program main
   call initialize_arrays()
   nid = get_neighbor_ids(this_image())
   call get_ifl_jfl()
+
   sync all
-  
-  ! Main loop. Inside, update the interior & edge points on each processor
   if (this_image() == 1) time = secnds(0.0)
+
+  ! Main loop. Inside, update the interior & edge points on each processor
   do n = 1, niter
      call send_edges()
      call update_interior()
      b=a
      sync all
   end do
-  sync all  
+
   if (this_image() == 1) time = secnds(time)
 
   ! Compute the norm as a quick means of testing correctness
