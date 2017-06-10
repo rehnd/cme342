@@ -248,6 +248,8 @@ contains
   subroutine update_interior()
     integer :: i, j
 
+    ! do concurrent (j = 2:n2me-1)
+    !    do concurrent (i = 2:n1me-1)
     do j = 2, n2me-1
        do i = 2, n1me-1
           a(i,j) = b(i,j) + epsilon*(                        &
