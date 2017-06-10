@@ -98,8 +98,8 @@ if __name__ == '__main__':
     # Set default parameters to get:
     printnorms = False # this option prints the norms to files, instead of times
     nsims_to_avg = 10
-    #probs = ['hw1_i','hw1_ii','hw1_iii', 'coarray', 'border']
-    probs = ['hw1_i', 'coarray', 'border']
+    probs = ['hw1_i','hw1_ii','hw1_iii', 'coarray', 'border']
+    #probs = ['hw1_i', 'coarray', 'border']
     nps = array([1,2,4])
 
     if 'times.dat' in os.listdir('.'):
