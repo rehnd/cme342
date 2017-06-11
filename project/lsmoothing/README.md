@@ -1,6 +1,6 @@
 # Laplacian Smoothing with Coarray Fortran
 
-For access to this homework on
+For access to this project on
 github,
 [click here](http://github.com/rehnd/cme342/tree/master/project).
 
@@ -83,7 +83,8 @@ There are several points for my doing this project:
    - How many lines of code are required to perform similar MPI tasks?
    - How does the performance compare?
 
-Below, I will cover three main topics in addressing the above points:
+In addressing these points, I will cover four topics, devoting a
+section below to each topic:
 
 1. Concurrency loops
 2. Runtime performance of MPI code vs. Coarray code
@@ -124,9 +125,8 @@ could just as well enable threading under the hood, so that the `do
 concurrent` loop above is essentially turned in to an OpenMP construct.
 
 This optimization is the first example of how coarray Fortran provides
-high performance with very easy-to-use syntax.
-
-In my project code, I have loops that look as follows:
+high performance with very easy-to-use syntax. In my project code, I
+have loops that look as follows:
 
 ``` fortran
    ! Standard Fortran loop
@@ -165,7 +165,10 @@ allowing the compiler to do this is that the code is portable across a
 variety of machines, and each machine can have its own set of rules
 for how to best optimize a `do concurrent` loop. Therefore, one
 machine might use vectorization while another might implement
-threading, depending on how the compiler decides to optimize the code.
+threading, depending on how the compiler decides to optimize the
+code. This allows for fine-grained optimization for a particular
+machine or computer architecture, while not sacrificing generality in
+the code itself.
 
 ## 2. Runtime performance of MPI Fortran and Coarray Fortran
 In the first homework assignment, we implemented a solution to the
@@ -200,7 +203,7 @@ This second formulation allows for two significant advantages: 1) The
 code is particularly simple to write since no contiguous border arrays
 are needed and 2) MPI Derived data types are used under the hood.
 
-The MPI derived datatypes being used under the hood requires further
+The MPI derived datatypes used under the hood require further
 explanation. When sending data under this `Coarrays w/ Derived
 Datatypes` version, we have the following simple code:
 
@@ -222,7 +225,9 @@ Datatypes` version, we have the following simple code:
 ```
 
 Note that here `nid` is of size 4 and contains the neighbor id's of
-all surrounding cells. 
+all surrounding cells. If no cell exists to the left (`i=1`), bottom
+(`i=2
+`), right (`i=3`), or top (`i=4`), then `nid(i)` is set to -1.
 
 In the above example, we first ask whether a neighbor to the South
 (`nid(2)`) exists. If it does, we grab the first row of data from
@@ -330,13 +335,22 @@ As shown in the figure, Coarray Fortran requires many fewer lines of
 code to perform essentially the same task. In fact, if we were to
 implement MPI Derived Data types using standard MPI Fortran, we would
 expect to have even more lines of MPI code than the 3 examples shown
-above. In these respects, Coarray Fortran offers a great advantage.
+above. In some sense, counting the number of lines of code is also a
+_generous_ comparison for MPI.  If we were to count the number of
+characters used in MPI code vs. coarray code, the discrepacnies in the
+above figure would be even greater. Furthermore, it is difficult to
+quantify debug time from a simple character/line count alone. Often
+times, MPI code can be extremely tedious to debug, and the time spent
+debugging might not always scale linearly with the number of lines or
+characters. In these respects, Coarray Fortran offers a great
+advantage.
+
 
 ## 4.  Additional features of Coarray Fortran
 In addition to the Coarray features described above, there are several
-features new to the Fortran 2015 standards that deserve mention. An
-important addition to the Fortran 2015 standard is the ability to do
-collective communication routines with coarrays. 
+features new to the Fortran 2015 standards that deserve mention. One
+important addition is the ability to do collective communication
+routines with coarrays.
 
 The collective communication calls include:
 
@@ -362,13 +376,13 @@ which stores the computed norm on image 1 (note that image 1 in
 coarray Fortran is the first image -- not image 0, as is the case in
 MPI Fortran).
 
-
 In addition to these features, Coarray Fortran now (very recently) has
 the ability to detect failed images. This is very important for
 exascale computing, where the probability of a node failing becomes
-much more certain. In these cases, it is important for the code to
-adapt and respond to the failed images. Coarray Fortran, when built
-with very recent versions of MPICH, includes the intrinsic function
+much larger, due to the sheer number of processors running at a given
+time. In these cases, it is important for the code to adapt and
+respond to the failed images. Coarray Fortran, when built with very
+recent versions of MPICH, includes the intrinsic function
 
 ``` fortran
 failed_images()
@@ -376,4 +390,4 @@ failed_images()
 
 as well as other features to assist with these scenarios. This is very
 recent, and although I have not used this feature before, it should be
-very useful. 
+very useful for code developers as we approach exascale computing. 
