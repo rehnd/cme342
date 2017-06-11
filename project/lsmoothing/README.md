@@ -1,4 +1,4 @@
-# Laplacian Smoothing with Fortran OpenCoarrays
+# Laplacian Smoothing with Coarray Fortran
 
 For access to this homework on
 github,
@@ -6,7 +6,6 @@ github,
 
 
 ## 0. Overview
-
 ### 0.1 Coarray basics
 This project uses Fortran's 2008/2015 standards, which include
 specifications for _coarray_ Fortran. Coarrays allow code developers
