@@ -305,6 +305,76 @@ efficiency and speedup is so poor in the above plots._
 
 
 ## 3. Comparison of number of lines of code/implementation difficulty
+Another important metric for comparing Coarray Fortran to standard MPI
+Fortran is to look at the code complexity. As has already been
+described, Coarray Fortran code has far simpler syntax than
+traditional MPI Fortran. However, we can quantify this in a simpler
+way by looking at the number of lines of code involved in each
+case. The figure below presents the number of lines of code.
+
+![](pics/codelines.png)
+
+In the above figure, we count the lines of code for MPI and Coarray
+Fortran in the following ways:
+
+* **MPI Fortran:** Count the total number of lines that include
+  `MPI`. This is almost entirely MPI commands, such as `MPI_Recv`,
+  `MPI_Barrier`, etc. 
+* **Coarray Fortran:** Count the number of `sync all` statements and
+  any statements involving array assignment, for example:
+  
+  ```fortran
+	  b(1,:) = b(n,:)[2]
+  ```
+
+As shown in the figure, Coarray Fortran requires many fewer lines of
+code to perform essentially the same task. In fact, if we were to
+implement MPI Derived Data types using standard MPI Fortran, we would
+expect to have even more lines of MPI code than the 3 examples shown
+above. In these respects, Coarray Fortran offers a great advantage.
+
+## 4.  Additional features of Coarray Fortran
+In addition to the Coarray features described above, there are several
+features new to the Fortran 2015 standards that deserve mention. An
+important addition to the Fortran 2015 standard is the ability to do
+collective communication routines with coarrays. 
+
+The collective communication calls include:
+
+* `co_sum` (collective sum): sum the elements of elements of a coarray
+  on each image and store the result in a specified image
+* `co_reduce` (collective reduction operation): similar to `co_sum`,
+  but for a generic operation to be applied to all elements of a
+  coarray.
+* More examples...
+
+Of the above, I ended up using only `co_sum` to compute the total norm
+of the array. That syntax looks as follows:
+
+``` fortran
+norm = sum(a**2)
+
+call co_sum(norm, result_image=1)
+
+if (this_image() == 1) norm = sqrt(norm)
+```
+
+which stores the computed norm on image 1 (note that image 1 in
+coarray Fortran is the first image -- not image 0, as is the case in
+MPI Fortran).
 
 
+In addition to these features, Coarray Fortran now (very recently) has
+the ability to detect failed images. This is very important for
+exascale computing, where the probability of a node failing becomes
+much more certain. In these cases, it is important for the code to
+adapt and respond to the failed images. Coarray Fortran, when built
+with very recent versions of MPICH, includes the intrinsic function
 
+``` fortran
+failed_images()
+```
+
+as well as other features to assist with these scenarios. This is very
+recent, and although I have not used this feature before, it should be
+very useful. 
